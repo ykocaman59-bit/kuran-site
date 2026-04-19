@@ -49,16 +49,25 @@ let ayetList=[];
 let currentSure=1;
 let btn=document.getElementById("playBtn");
 
-// 🔥 SURE İSİMLERİ API'DEN
+// SURELERİ YÜKLE
 fetch("https://api.alquran.cloud/v1/surah")
 .then(r=>r.json())
 .then(data=>{
+    let select = document.getElementById("sure");
+
     data.data.forEach(s=>{
         let opt=document.createElement("option");
         opt.value=s.number;
         opt.innerText = s.number + ". " + s.englishName;
-        document.getElementById("sure").appendChild(opt);
+        select.appendChild(opt);
     });
+
+    // KALDIĞI YERİ YÜKLE
+    let saved = JSON.parse(localStorage.getItem("kuran"));
+    if(saved){
+        select.value = saved.sure;
+        document.getElementById("start").value = saved.ayet;
+    }
 });
 
 // YÜKLE
@@ -101,6 +110,7 @@ function playAyet(){
     playing=true;
     btn.innerHTML="⏸ Duraklat";
 
+    // KAYDET
     localStorage.setItem("kuran",JSON.stringify({
         sure:currentSure,
         ayet:currentAyet
@@ -141,15 +151,6 @@ function highlight(){
     document.querySelectorAll(".ayet").forEach(e=>e.classList.remove("active"));
     let el=document.getElementById("a"+currentAyet);
     if(el) el.classList.add("active");
-}
-
-// KALDIĞI YER
-window.onload=function(){
-    let data=JSON.parse(localStorage.getItem("kuran"));
-    if(data){
-        document.getElementById("sure").value=data.sure;
-        document.getElementById("start").value=data.ayet;
-    }
 }
 
 </script>
