@@ -2,7 +2,7 @@
 <html lang="tr">
 <head>
 <meta charset="UTF-8">
-<title>Kuran Dinle</title>
+<title>Kuran Dinle PRO</title>
 
 <style>
 body {
@@ -37,12 +37,21 @@ input {
 
 <body>
 
-<h1>KURAN DİNLE</h1>
+<h1>KURAN DİNLE PRO</h1>
 
 <select id="sureSelect"></select>
+
 <br><br>
 
-Başlangıç ayeti: <input type="number" id="startAyet" value="1" min="1">
+Başlangıç ayeti:
+<input type="number" id="startAyet" value="1" min="1">
+
+<br><br>
+
+<label>
+<input type="checkbox" id="autoNext">
+Sonraki sureye otomatik geç
+</label>
 
 <br><br>
 
@@ -58,6 +67,8 @@ Başlangıç ayeti: <input type="number" id="startAyet" value="1" min="1">
 
 let ayetData = [];
 let current = 0;
+let currentSurah = 1;
+let player = document.getElementById("player");
 
 // SURELERİ ÇEK
 fetch("https://api.alquran.cloud/v1/surah")
@@ -76,9 +87,9 @@ fetch("https://api.alquran.cloud/v1/surah")
 // SURE YÜKLE
 function loadSurah() {
 
-  let no = document.getElementById("sureSelect").value;
+  currentSurah = document.getElementById("sureSelect").value;
 
-  fetch(`https://api.alquran.cloud/v1/surah/${no}/ar.alafasy`)
+  fetch(`https://api.alquran.cloud/v1/surah/${currentSurah}/ar.alafasy`)
   .then(res => res.json())
   .then(data => {
 
@@ -110,25 +121,49 @@ function playAudio() {
 // AYET AYET OYNAT
 function playNext() {
 
-  if (current >= ayetData.length) return;
-
-  let player = document.getElementById("player");
+  if (current >= ayetData.length) {
+    nextSurah();
+    return;
+  }
 
   player.src = ayetData[current].audio;
 
-  // sarı yap
   document.querySelectorAll(".ayet").forEach(e => e.classList.remove("active"));
+
   let aktif = document.getElementById("a" + current);
   if (aktif) aktif.classList.add("active");
 
+  if (aktif) aktif.scrollIntoView({ behavior: "smooth", block: "center" });
+
   player.play().catch(() => {});
 
-  // BURASI ÖNEMLİ (düzeltme)
   player.onended = null;
-  player.onended = function() {
+
+  player.addEventListener("ended", function () {
     current++;
     playNext();
-  };
+  }, { once: true });
+}
+
+// SONRAKİ SURE
+function nextSurah() {
+
+  let auto = document.getElementById("autoNext").checked;
+
+  if (!auto) return;
+
+  currentSurah++;
+
+  if (currentSurah > 114) return;
+
+  document.getElementById("sureSelect").value = currentSurah;
+
+  loadSurah();
+
+  setTimeout(() => {
+    current = 0;
+    playNext();
+  }, 1000);
 }
 
 </script>
