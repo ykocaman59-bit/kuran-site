@@ -6,48 +6,13 @@
 <title>Kuran Dinle PRO</title>
 
 <style>
-body{
-  background:black;
-  color:white;
-  text-align:center;
-  font-family:Arial;
-  margin:0;
-  user-select:none;
-}
-
-h1{margin-top:20px;}
-
-select,input,button{
-  padding:10px;
-  margin:6px;
-  font-size:16px;
-  border-radius:10px;
-  border:none;
-}
-
-.ayet{
-  padding:15px;
-  border-bottom:1px solid #222;
-}
-
-.ar{
-  font-size:26px;
-}
-
-.tr{
-  font-size:14px;
-  color:#aaa;
-}
-
-.active{
-  background:yellow;
-  color:black;
-}
-
-.kalp{
-  cursor:pointer;
-  font-size:20px;
-}
+body{background:black;color:white;text-align:center;font-family:Arial;margin:0;user-select:none;}
+select,input,button{padding:10px;margin:6px;font-size:16px;border-radius:10px;border:none;}
+.ayet{padding:15px;border-bottom:1px solid #222;}
+.ar{font-size:26px;}
+.tr{font-size:14px;color:#aaa;}
+.active{background:yellow;color:black;}
+.kalp{cursor:pointer;font-size:20px;}
 </style>
 </head>
 
@@ -58,14 +23,15 @@ select,input,button{
 <select id="sure"></select><br>
 
 Başlangıç:
-<input type="number" id="start" value="1" min="1"><br>
+<input type="number" id="start" value="1"><br>
 
 <label>
 <input type="checkbox" id="auto"> Otomatik geç
 </label><br>
 
 <button onclick="load()">Yükle</button>
-<button id="btn" onclick="toggle()">▶ Başlat</button>
+<button onclick="startPlay()">▶ Başlat</button>
+<button onclick="pausePlay()">⏸ Duraklat</button>
 
 <div id="list"></div>
 
@@ -78,13 +44,8 @@ let i=0;
 let sura=1;
 
 const p=document.getElementById("p");
-const btn=document.getElementById("btn");
-const list=document.getElementById("list");
-const sure=document.getElementById("sure");
-const start=document.getElementById("start");
-const auto=document.getElementById("auto");
 
-// SURE LİSTESİ
+// SURELER
 fetch("https://api.alquran.cloud/v1/surah")
 .then(r=>r.json())
 .then(d=>{
@@ -98,7 +59,6 @@ fetch("https://api.alquran.cloud/v1/surah")
 
 // YÜKLE
 function load(){
-
   sura=sure.value;
 
   Promise.all([
@@ -146,24 +106,17 @@ function favToggle(x){
   load();
 }
 
-// BAŞLAT / DURAKLAT
-function toggle(){
+// BAŞLAT
+function startPlay(){
+  if(data.length===0) return;
 
-  if(!p.src){
-    i = start.value - 1;
-    play();
-    return;
-  }
+  i = document.getElementById("start").value - 1;
+  play();
+}
 
-  if(!p.paused){
-    p.pause();
-    btn.innerHTML="▶ Başlat";
-    return;
-  }
-
-  p.play().then(()=>{
-    btn.innerHTML="⏸ Duraklat";
-  });
+// DURAKLAT
+function pausePlay(){
+  p.pause();
 }
 
 // OYNAT
@@ -174,7 +127,8 @@ function play(){
     return;
   }
 
-  p.src=data[i].audio;
+  p.src = data[i].audio;
+  p.load(); // KRİTİK
 
   document.querySelectorAll(".ayet").forEach(e=>e.classList.remove("active"));
 
@@ -184,22 +138,16 @@ function play(){
     el.scrollIntoView({behavior:"smooth",block:"center"});
   }
 
-  setTimeout(()=>{
-    p.play().catch(()=>{});
-  },100);
+  p.play().catch(()=>{});
 
-  btn.innerHTML="⏸ Duraklat";
-
-  p.onended=null;
-  p.addEventListener("ended",()=>{
+  p.onended = ()=>{
     i++;
     play();
-  },{once:true});
+  };
 }
 
 // SONRAKİ SURE
 function nextSurah(){
-
   if(!auto.checked) return;
 
   sura++;
