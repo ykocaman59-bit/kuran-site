@@ -5,165 +5,179 @@
 <title>Kuran Dinle PRO</title>
 
 <style>
-body {
-  background: #111;
-  color: white;
-  text-align: center;
-  font-family: Arial;
-}
-
-button {
-  padding: 10px;
-  margin: 10px;
-  font-size: 16px;
-}
-
-input {
-  padding: 8px;
-  width: 60px;
-}
-
-.ayet {
-  padding: 10px;
-}
-
-.active {
-  background: yellow;
-  color: black;
-}
+body {background:#111;color:white;text-align:center;font-family:Arial;}
+select,input,button {margin:5px;padding:8px;}
+.ayet {padding:10px;}
+.active {background:yellow;color:black;}
+.meal {font-size:13px;color:#aaa;}
+.fav {color:red;}
 </style>
-
 </head>
 
 <body>
 
 <h1>KURAN DİNLE PRO</h1>
 
-<select id="sureSelect"></select>
-
-<br><br>
+<select id="sureSelect"></select><br>
 
 Başlangıç ayeti:
-<input type="number" id="startAyet" value="1" min="1">
+<input type="number" id="startAyet" value="1"><br>
 
-<br><br>
+🎧 Hoca:
+<select id="reciter">
+<option value="ar.alafasy">Alafasy</option>
+<option value="ar.husary">Husary</option>
+<option value="ar.abdurrahmaansudais">Sudais</option>
+</select><br>
 
 <label>
-<input type="checkbox" id="autoNext">
+<input type="checkbox" id="autoNext" checked>
 Sonraki sureye otomatik geç
-</label>
-
-<br><br>
+</label><br>
 
 <button onclick="loadSurah()">Yükle</button>
-<button onclick="playAudio()">Başlat</button>
+<button onclick="togglePlay()">▶️ / ⏸</button>
 
 <div id="ayetler"></div>
 
-<br>
 <audio id="player" controls></audio>
 
 <script>
 
 let ayetData = [];
 let current = 0;
-let currentSurah = 1;
-let player = document.getElementById("player");
+let playing = false;
+let favorites = JSON.parse(localStorage.getItem("fav")) || [];
 
 // SURELERİ ÇEK
 fetch("https://api.alquran.cloud/v1/surah")
 .then(res => res.json())
 .then(data => {
   let select = document.getElementById("sureSelect");
-
   data.data.forEach(s => {
     let opt = document.createElement("option");
     opt.value = s.number;
     opt.innerText = s.number + ". " + s.englishName;
     select.appendChild(opt);
   });
+  loadSaved();
 });
 
 // SURE YÜKLE
 function loadSurah() {
+  let no = document.getElementById("sureSelect").value;
+  let reciter = document.getElementById("reciter").value;
 
-  currentSurah = document.getElementById("sureSelect").value;
+  Promise.all([
+    fetch(`https://api.alquran.cloud/v1/surah/${no}/${reciter}`).then(r=>r.json()),
+    fetch(`https://api.alquran.cloud/v1/surah/${no}/tr.diyanet`).then(r=>r.json())
+  ]).then(([audioData, mealData]) => {
 
-  fetch(`https://api.alquran.cloud/v1/surah/${currentSurah}/ar.alafasy`)
-  .then(res => res.json())
-  .then(data => {
-
-    ayetData = data.data.ayahs;
+    ayetData = audioData.data.ayahs;
 
     let div = document.getElementById("ayetler");
     div.innerHTML = "";
 
-    ayetData.forEach((a, i) => {
-      let p = document.createElement("div");
-      p.className = "ayet";
-      p.id = "a" + i;
-      p.innerText = (i+1) + ". " + a.text;
-      div.appendChild(p);
+    ayetData.forEach((a,i)=>{
+      let d = document.createElement("div");
+      d.className="ayet";
+      d.id="a"+i;
+
+      let favClass = favorites.includes(a.number) ? "fav" : "";
+
+      d.innerHTML = `
+        <div onclick="toggleFav(${a.number})" class="${favClass}">
+        ${a.numberInSurah}. ${a.text}
+        </div>
+        <div class="meal">${mealData.data.ayahs[i].text}</div>
+      `;
+
+      div.appendChild(d);
     });
+
+    current = parseInt(document.getElementById("startAyet").value) - 1 || 0;
 
   });
 }
 
-// BAŞLAT
-function playAudio() {
+// PLAY / PAUSE
+function togglePlay(){
+  let player = document.getElementById("player");
 
-  let start = document.getElementById("startAyet").value;
-  current = start - 1;
-
-  playNext();
+  if(!playing){
+    playing = true;
+    playNext();
+  } else {
+    player.pause();
+    playing = false;
+  }
 }
 
-// AYET AYET OYNAT
-function playNext() {
+// AYET OYNAT
+function playNext(){
+  if(!playing) return;
 
-  if (current >= ayetData.length) {
-    nextSurah();
+  if(current >= ayetData.length){
+    if(document.getElementById("autoNext").checked){
+      nextSurah();
+    }
     return;
   }
 
+  let player = document.getElementById("player");
   player.src = ayetData[current].audio;
 
-  document.querySelectorAll(".ayet").forEach(e => e.classList.remove("active"));
+  document.querySelectorAll(".ayet").forEach(e=>e.classList.remove("active"));
+  let aktif = document.getElementById("a"+current);
+  if(aktif) aktif.classList.add("active");
 
-  let aktif = document.getElementById("a" + current);
-  if (aktif) aktif.classList.add("active");
+  localStorage.setItem("sure", document.getElementById("sureSelect").value);
+  localStorage.setItem("ayet", current);
 
-  if (aktif) aktif.scrollIntoView({ behavior: "smooth", block: "center" });
+  player.play();
 
-  player.play().catch(() => {});
-
-  player.onended = null;
-
-  player.addEventListener("ended", function () {
+  player.onended = ()=>{
     current++;
     playNext();
-  }, { once: true });
+  };
 }
 
 // SONRAKİ SURE
-function nextSurah() {
-
-  let auto = document.getElementById("autoNext").checked;
-
-  if (!auto) return;
-
-  currentSurah++;
-
-  if (currentSurah > 114) return;
-
-  document.getElementById("sureSelect").value = currentSurah;
-
+function nextSurah(){
+  let select = document.getElementById("sureSelect");
+  select.value = parseInt(select.value) + 1;
   loadSurah();
 
-  setTimeout(() => {
+  setTimeout(()=>{
     current = 0;
     playNext();
-  }, 1000);
+  },1000);
+}
+
+// FAVORİ
+function toggleFav(no){
+  if(favorites.includes(no)){
+    favorites = favorites.filter(x=>x!==no);
+  } else {
+    favorites.push(no);
+  }
+  localStorage.setItem("fav", JSON.stringify(favorites));
+  loadSurah();
+}
+
+// KAYIT YÜKLE
+function loadSaved(){
+  let s = localStorage.getItem("sure");
+  let a = localStorage.getItem("ayet");
+
+  if(s){
+    document.getElementById("sureSelect").value = s;
+    loadSurah();
+
+    setTimeout(()=>{
+      current = a ? parseInt(a) : 0;
+    },1000);
+  }
 }
 
 </script>
