@@ -6,36 +6,13 @@
 <title>Kuran Dinle PRO</title>
 
 <style>
-body{
-  margin:0;
-  font-family:Arial;
-  background:#000;
-  color:white;
-  text-align:center;
-}
-
-select,input,button{
-  padding:10px;
-  margin:6px;
-  border-radius:10px;
-  border:none;
-  font-size:16px;
-}
-
-.ayet{
-  padding:15px;
-  border-bottom:1px solid #222;
-}
-
-.active{
-  background:yellow;
-  color:black;
-}
-
+body{background:black;color:white;text-align:center;font-family:Arial;margin:0;user-select:none;}
+select,input,button{padding:10px;margin:6px;font-size:16px;border-radius:10px;border:none;}
+.ayet{padding:15px;border-bottom:1px solid #222;}
 .ar{font-size:26px;}
 .tr{font-size:14px;color:#aaa;}
-
-.kalp{font-size:20px;cursor:pointer;}
+.active{background:yellow;color:black;}
+.kalp{cursor:pointer;font-size:20px;}
 </style>
 </head>
 
@@ -63,9 +40,8 @@ Başlangıç:
 <script>
 
 let data=[];
+let i=0;
 let sura=1;
-let current=0;
-let isPlaying=false;
 
 const p=document.getElementById("p");
 
@@ -83,21 +59,20 @@ fetch("https://api.alquran.cloud/v1/surah")
 
 // YÜKLE
 function load(){
+  sura=sure.value;
 
-  sura = document.getElementById("sure").value;
+  Promise.all([
+    fetch(`https://api.alquran.cloud/v1/surah/${sura}/ar.alafasy`).then(r=>r.json()),
+    fetch(`https://api.alquran.cloud/v1/surah/${sura}/tr.diyanet`).then(r=>r.json())
+  ])
+  .then(([ar,tr])=>{
 
-  fetch(`https://api.alquran.cloud/v1/surah/${sura}/ar.alafasy`)
-  .then(r=>r.json())
-  .then(d=>{
-
-    data = d.data.ayahs;
-
-    let list=document.getElementById("list");
+    data=ar.data.ayahs;
     list.innerHTML="";
 
     data.forEach((a,x)=>{
 
-      let fav = localStorage.getItem("fav_"+sura+"_"+x)=="1";
+      let fav=localStorage.getItem("fav_"+sura+"_"+x)=="1";
 
       let div=document.createElement("div");
       div.className="ayet";
@@ -105,7 +80,8 @@ function load(){
 
       div.innerHTML=`
         <div class="ar">${a.text}</div>
-        <div class="kalp" onclick="favToggle(event,${x})">
+        <div class="tr">${tr.data.ayahs[x].text}</div>
+        <div class="kalp" onclick="favToggle(${x})">
           ${fav?"❤️":"🤍"}
         </div>
       `;
@@ -113,13 +89,12 @@ function load(){
       list.appendChild(div);
     });
 
+    p.src="";
   });
 }
 
 // FAVORİ
-function favToggle(e,x){
-  e.stopPropagation();
-
+function favToggle(x){
   let key="fav_"+sura+"_"+x;
 
   if(localStorage.getItem(key)){
@@ -128,80 +103,64 @@ function favToggle(e,x){
     localStorage.setItem(key,"1");
   }
 
-  let el=document.getElementById("a"+x).querySelector(".kalp");
-  el.innerHTML = localStorage.getItem(key) ? "❤️" : "🤍";
+  load();
 }
 
 // BAŞLAT
 function startPlay(){
+  if(data.length===0) return;
 
-  let start = document.getElementById("start").value;
-
-  current = start ? start-1 : 0;
-
-  isPlaying = true;
-
-  playNext();
+  i = document.getElementById("start").value - 1;
+  play();
 }
 
 // DURAKLAT
 function pausePlay(){
   p.pause();
-  isPlaying=false;
 }
 
-// AYET AYET OYNAT
-function playNext(){
+// OYNAT
+function play(){
 
-  if(!isPlaying) return;
-
-  if(current >= data.length){
+  if(i>=data.length){
     nextSurah();
     return;
   }
 
-  p.src = data[current].audio;
-
-  highlight();
-
-  p.play().catch(()=>{});
-
-  p.onended = ()=>{
-    current++;
-    playNext();
-  };
-}
-
-// TAKİP
-function highlight(){
+  p.src = data[i].audio;
+  p.load(); // KRİTİK
 
   document.querySelectorAll(".ayet").forEach(e=>e.classList.remove("active"));
 
-  let el = document.getElementById("a"+current);
-
+  let el=document.getElementById("a"+i);
   if(el){
     el.classList.add("active");
     el.scrollIntoView({behavior:"smooth",block:"center"});
   }
+
+  p.play().catch(()=>{});
+
+  p.onended = ()=>{
+    i++;
+    play();
+  };
 }
 
 // SONRAKİ SURE
 function nextSurah(){
-
-  if(!document.getElementById("auto").checked) return;
+  if(!auto.checked) return;
 
   sura++;
-
   if(sura>114) return;
 
-  document.getElementById("sure").value = sura;
+  sure.value=sura;
 
   load();
 
   setTimeout(()=>{
-    current=0;
-    playNext();
-  },800);
+    i=0;
+    play();
+  },1000);
 }
 
 </script>
