@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<title>Kuran Dinle</title>
+<style>
+body {
+    font-family: Arial;
+    text-align: center;
+    background: #111;
+    color: white;
+}
+button {
+    padding: 10px;
+    margin: 5px;
+    font-size: 16px;
+}
+.active {
+    color: yellow;
+}
+</style>
+</head>
+<body>
+
+<h1>KURAN DİNLE</h1>
+
+<select id="sure">
+<option value="1">Fatiha</option>
+<option value="2">Bakara</option>
+</select>
+
+<br><br>
+
+<button onclick="baslat()">Başlat</button>
+
+<p id="ayet"></p>
+
+<audio id="audio" controls></audio>
+
+<script>
+let ayetler = {
+1: [
+"Bismillahirrahmanirrahim",
+"Elhamdülillahi rabbil alemin",
+"Errahmanirrahim",
+"Maliki yevmiddin",
+"İyyake na'budu ve iyyake nesta'in",
+"İhdinas sıratal müstakim",
+"Sıratallezine en'amte aleyhim"
+]
+};
+
+let index = 0;
+
+function baslat(){
+let sure = document.getElementById("sure").value;
+let audio = document.getElementById("audio");
+
+audio.src = "https://download.quranicaudio.com/quran/mishaari_raashid_al_3afaasee/001.mp3";
+audio.play();
+
+index = 0;
+
+setInterval(()=>{
+if(ayetler[sure] && ayetler[sure][index]){
+document.getElementById("ayet").innerText = ay
