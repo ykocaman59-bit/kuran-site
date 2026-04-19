@@ -75,6 +75,9 @@ let current = 0;
 let playing = false;
 let favs = JSON.parse(localStorage.getItem("fav")||"[]");
 
+// 🔥 GEÇİŞ KİLİDİ (TEKRAR ENGEL)
+let switching = false;
+
 // SURELER
 fetch("https://api.alquran.cloud/v1/surah")
 .then(r=>r.json())
@@ -125,6 +128,8 @@ function render(){
 function play(){
   if(!ayetList.length) return;
 
+  switching = false; // reset
+
   player.src = ayetList[current].audio;
   player.play();
   playing=true;
@@ -142,27 +147,26 @@ function togglePlay(){
   }
 }
 
-// 🔥 GARANTİLİ GEÇİŞ
-function nextAyet(){
+// 🔥 TEK GEÇİŞ SİSTEMİ
+player.onended = () => {
+
+  if(switching) return; // tekrar engelle
+  switching = true;
+
   current++;
 
-  if(current>=ayetList.length){
+  if(current >= ayetList.length){
     if(document.getElementById("autoNext").checked){
-      current=0;
-    } else return;
+      current = 0;
+    } else {
+      playing = false;
+      return;
+    }
   }
 
-  play();
-}
-
-// NORMAL
-player.onended = nextAyet;
-
-// 🔥 YEDEK SİSTEM (donarsa bile geçer)
-player.ontimeupdate = () => {
-  if(player.duration && player.currentTime >= player.duration - 0.3){
-    nextAyet();
-  }
+  setTimeout(()=>{
+    play();
+  }, 300);
 };
 
 // HIGHLIGHT
