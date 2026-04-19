@@ -79,28 +79,7 @@ fetch("https://api.alquran.cloud/v1/surah")
     o.textContent=s.number+". "+s.englishName;
     sure.appendChild(o);
   });
-
-  loadLast();
 });
-
-// KALDIĞIN YER
-function loadLast(){
-  let s = localStorage.getItem("sura");
-  let a = localStorage.getItem("ayet");
-
-  if(s){
-    sura = parseInt(s);
-    current = parseInt(a || 0);
-
-    document.getElementById("sure").value = sura;
-
-    load();
-
-    setTimeout(()=>{
-      highlight();
-    },800);
-  }
-}
 
 // YÜKLE
 function load(){
@@ -156,15 +135,11 @@ function favToggle(e,x){
 // BAŞLAT
 function startPlay(){
 
-  if(isPlaying) return;
-
-  isPlaying=true;
-
   let start = document.getElementById("start").value;
 
-  if(start){
-    current = start-1;
-  }
+  current = start ? start-1 : 0;
+
+  isPlaying = true;
 
   playNext();
 }
@@ -193,10 +168,6 @@ function playNext(){
 
   p.onended = ()=>{
     current++;
-
-    localStorage.setItem("sura",sura);
-    localStorage.setItem("ayet",current);
-
     playNext();
   };
 }
