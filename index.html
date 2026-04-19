@@ -2,52 +2,49 @@
 <html lang="tr">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <title>Kuran Dinle PRO</title>
 
 <style>
-body {
-  background: #000;
-  color: white;
-  text-align: center;
-  font-family: Arial;
-  margin: 0;
-  user-select: none;
+body{
+  background:black;
+  color:white;
+  text-align:center;
+  font-family:Arial;
+  margin:0;
+  user-select:none;
 }
 
-h1 {
-  margin-top: 20px;
+select,input,button{
+  padding:10px;
+  margin:6px;
+  font-size:16px;
+  border-radius:8px;
+  border:none;
 }
 
-select, input, button {
-  padding: 10px;
-  margin: 8px;
-  font-size: 16px;
-  border-radius: 8px;
-  border: none;
+.ayet{
+  padding:12px;
+  font-size:20px;
 }
 
-button {
-  cursor: pointer;
+.ar{
+  font-size:26px;
 }
 
-.ayet {
-  padding: 12px;
-  font-size: 20px;
+.tr{
+  font-size:14px;
+  color:#aaa;
 }
 
-.arapca {
-  font-size: 26px;
-  margin-bottom: 5px;
+.active{
+  background:yellow;
+  color:black;
 }
 
-.meal {
-  font-size: 14px;
-  color: #aaa;
-}
-
-.active {
-  background: yellow;
-  color: black;
+.kalp{
+  cursor:pointer;
+  margin-left:10px;
 }
 </style>
 </head>
@@ -56,152 +53,149 @@ button {
 
 <h1>KURAN DİNLE PRO</h1>
 
-<select id="sureSelect"></select>
+<select id="sure"></select><br>
 
-<br>
-
-Başlangıç ayeti:
-<input type="number" id="startAyet" value="1" min="1">
-
-<br>
+Başlangıç:
+<input type="number" id="start" value="1"><br>
 
 <label>
-<input type="checkbox" id="autoNext">
-Otomatik sure geç
-</label>
+<input type="checkbox" id="auto"> Otomatik geç
+</label><br>
 
-<br>
+<button onclick="load()">Yükle</button>
+<button id="btn" onclick="toggle()">▶ Başlat</button>
 
-<button onclick="loadSurah()">Yükle</button>
-<button id="playBtn" onclick="togglePlay()">▶ Başlat</button>
+<div id="list"></div>
 
-<div id="ayetler"></div>
-
-<audio id="player"></audio>
+<audio id="p"></audio>
 
 <script>
 
-let ayetler = [];
-let current = 0;
-let currentSurah = 1;
-let player = document.getElementById("player");
-let playing = false;
+let data=[];
+let i=0;
+let sura=1;
+let p=document.getElementById("p");
 
-// SURELERİ ÇEK
+// sure listesi
 fetch("https://api.alquran.cloud/v1/surah")
-.then(r => r.json())
-.then(d => {
-  let select = document.getElementById("sureSelect");
-
-  d.data.forEach(s => {
-    let opt = document.createElement("option");
-    opt.value = s.number;
-    opt.textContent = s.number + ". " + s.englishName;
-    select.appendChild(opt);
+.then(r=>r.json())
+.then(d=>{
+  d.data.forEach(s=>{
+    let o=document.createElement("option");
+    o.value=s.number;
+    o.textContent=s.number+"."+s.englishName;
+    sure.appendChild(o);
   });
 });
 
-// SURE YÜKLE (ARAPÇA + TÜRKÇE)
-function loadSurah(){
-
-  currentSurah = document.getElementById("sureSelect").value;
+// yükle
+function load(){
+  sura=sure.value;
 
   Promise.all([
-    fetch(`https://api.alquran.cloud/v1/surah/${currentSurah}/ar.alafasy`).then(r=>r.json()),
-    fetch(`https://api.alquran.cloud/v1/surah/${currentSurah}/tr.diyanet`).then(r=>r.json())
+    fetch(`https://api.alquran.cloud/v1/surah/${sura}/ar.alafasy`).then(r=>r.json()),
+    fetch(`https://api.alquran.cloud/v1/surah/${sura}/tr.diyanet`).then(r=>r.json())
   ])
-  .then(([ar, tr]) => {
+  .then(([ar,tr])=>{
 
-    ayetler = ar.data.ayahs;
+    data=ar.data.ayahs;
 
-    let div = document.getElementById("ayetler");
-    div.innerHTML = "";
+    list.innerHTML="";
 
-    ayetler.forEach((a, i) => {
+    data.forEach((a,x)=>{
 
-      let el = document.createElement("div");
-      el.className = "ayet";
-      el.id = "a" + i;
+      let fav=localStorage.getItem("fav_"+sura+"_"+x)=="1";
 
-      el.innerHTML = `
-        <div class="arapca">${a.text}</div>
-        <div class="meal">${tr.data.ayahs[i].text}</div>
+      let d=document.createElement("div");
+      d.className="ayet";
+      d.id="a"+x;
+
+      d.innerHTML=`
+      <div class="ar">${a.text}</div>
+      <div class="tr">${tr.data.ayahs[x].text}</div>
+      <span class="kalp" onclick="favToggle(${x})">${fav?"❤️":"🤍"}</span>
       `;
 
-      div.appendChild(el);
+      list.appendChild(d);
     });
 
-    player.src = "";
-    current = 0;
-    document.getElementById("playBtn").innerHTML = "▶ Başlat";
-
+    p.src="";
   });
 }
 
-// TEK BUTON (PLAY / PAUSE)
-function togglePlay(){
+// favori toggle
+function favToggle(x){
+  let key="fav_"+sura+"_"+x;
+  let val=localStorage.getItem(key);
 
-  if(player.src == ""){
-    let start = document.getElementById("startAyet").value;
-    current = start - 1;
-    playNext();
+  if(val=="1"){
+    localStorage.removeItem(key);
+  }else{
+    localStorage.setItem(key,"1");
+  }
+
+  load();
+}
+
+// başlat/duraklat
+function toggle(){
+
+  if(p.src==""){
+    i=start.value-1;
+    play();
     return;
   }
 
-  if(player.paused){
-    player.play();
-    document.getElementById("playBtn").innerHTML = "⏸ Duraklat";
+  if(p.paused){
+    p.play();
+    btn.innerHTML="⏸";
   }else{
-    player.pause();
-    document.getElementById("playBtn").innerHTML = "▶ Başlat";
+    p.pause();
+    btn.innerHTML="▶";
   }
 }
 
-// AYET OYNAT
-function playNext(){
+// oynat
+function play(){
 
-  if(current >= ayetler.length){
-    nextSurah();
+  if(i>=data.length){
+    next();
     return;
   }
 
-  player.src = ayetler[current].audio;
+  p.src=data[i].audio;
 
   document.querySelectorAll(".ayet").forEach(e=>e.classList.remove("active"));
 
-  let aktif = document.getElementById("a"+current);
-  if(aktif){
-    aktif.classList.add("active");
-    aktif.scrollIntoView({behavior:"smooth", block:"center"});
+  let el=document.getElementById("a"+i);
+  if(el){
+    el.classList.add("active");
+    el.scrollIntoView({behavior:"smooth",block:"center"});
   }
 
-  player.play().catch(()=>{});
+  p.play().catch(()=>{});
+  btn.innerHTML="⏸";
 
-  document.getElementById("playBtn").innerHTML = "⏸ Duraklat";
-
-  player.onended = () => {
-    current++;
-    playNext();
+  p.onended=()=>{
+    i++;
+    play();
   };
 }
 
-// SONRAKİ SURE
-function nextSurah(){
+// sonraki sure
+function next(){
+  if(!auto.checked) return;
 
-  if(!document.getElementById("autoNext").checked) return;
+  sura++;
+  if(sura>114) return;
 
-  currentSurah++;
-
-  if(currentSurah > 114) return;
-
-  document.getElementById("sureSelect").value = currentSurah;
-
-  loadSurah();
+  sure.value=sura;
+  load();
 
   setTimeout(()=>{
-    current = 0;
-    playNext();
-  }, 1200);
+    i=0;
+    play();
+  },1000);
 }
 
 </script>
