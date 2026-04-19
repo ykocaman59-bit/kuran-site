@@ -12,11 +12,6 @@ body{
   text-align:center;
   font-family:Arial;
   margin:0;
-  user-select:none;
-}
-
-h1{
-  margin-top:20px;
 }
 
 select,input,button{
@@ -27,14 +22,9 @@ select,input,button{
   border:none;
 }
 
-button{
-  cursor:pointer;
-}
-
 .ayet{
   padding:18px;
   border-bottom:1px solid #222;
-  transition:0.3s;
 }
 
 .active{
@@ -42,19 +32,9 @@ button{
   color:black;
 }
 
-.ar{
-  font-size:26px;
-}
-
-.tr{
-  font-size:14px;
-  color:#aaa;
-}
-
-.kalp{
-  font-size:22px;
-  cursor:pointer;
-}
+.ar{font-size:26px;}
+.tr{font-size:14px;color:#aaa;}
+.kalp{font-size:22px;cursor:pointer;}
 </style>
 </head>
 
@@ -87,6 +67,26 @@ let sura=1;
 
 const p=document.getElementById("p");
 
+// KAYDI OKU (SITE AÇILINCA)
+window.onload = function(){
+
+  let savedSura = localStorage.getItem("last_sura");
+  let savedAyet = localStorage.getItem("last_ayet");
+
+  if(savedSura){
+    sura = parseInt(savedSura);
+  }
+
+  load(true);
+
+  setTimeout(()=>{
+    if(savedAyet){
+      current = parseInt(savedAyet);
+      document.getElementById("start").value = current + 1;
+    }
+  },1000);
+};
+
 // SURELER
 fetch("https://api.alquran.cloud/v1/surah")
 .then(r=>r.json())
@@ -100,9 +100,11 @@ fetch("https://api.alquran.cloud/v1/surah")
 });
 
 // YÜKLE
-function load(){
+function load(fromAuto=false){
 
-  sura = document.getElementById("sure").value;
+  sura = document.getElementById("sure").value || sura;
+
+  document.getElementById("sure").value = sura;
 
   Promise.all([
     fetch(`https://api.alquran.cloud/v1/surah/${sura}/ar.alafasy`).then(r=>r.json()),
@@ -137,7 +139,7 @@ function load(){
   });
 }
 
-// FAVORİ (Sesi bozmaz)
+// FAVORİ
 function favToggle(e,x){
   e.stopPropagation();
 
@@ -167,13 +169,17 @@ function pausePlay(){
   p.pause();
 }
 
-// AYET AYET OYNAT
+// AYET AYET
 function playNext(){
 
   if(current >= data.length){
     nextSurah();
     return;
   }
+
+  // 🔥 KAYDET
+  localStorage.setItem("last_sura", sura);
+  localStorage.setItem("last_ayet", current);
 
   p.src = data[current].audio;
 
