@@ -5,28 +5,11 @@
 <title>Kuran Dinle PRO</title>
 
 <style>
-body {
-    background:#111;
-    color:white;
-    text-align:center;
-    font-family:Arial;
-}
-select, input, button {
-    padding:8px;
-    margin:5px;
-    font-size:16px;
-}
-.ayet {
-    padding:10px;
-}
-.active {
-    background:yellow;
-    color:black;
-}
-.meal {
-    font-size:13px;
-    color:#aaa;
-}
+body {background:#111;color:white;text-align:center;font-family:Arial;}
+select,input,button {padding:8px;margin:5px;font-size:16px;}
+.ayet {padding:10px;}
+.active {background:yellow;color:black;}
+.meal {font-size:13px;color:#aaa;}
 </style>
 </head>
 
@@ -34,54 +17,49 @@ select, input, button {
 
 <h2>KURAN DİNLE PRO</h2>
 
-<select id="sure"></select>
-<br>
+<select id="sure"></select><br>
 
 Başlangıç ayeti:
-<input type="number" id="start" value="1" style="width:60px">
-
-<br>
+<input type="number" id="start" value="1" style="width:60px"><br>
 
 🎧 Hoca:
 <select id="hoca">
 <option value="ar.alafasy">Alafasy</option>
 <option value="ar.abdurrahmaansudais">Sudais</option>
 <option value="ar.saoodshuraym">Shuraym</option>
-</select>
-
-<br>
+</select><br>
 
 <label>
 <input type="checkbox" id="autoNext" checked>
 Sonraki sureye otomatik geç
-</label>
-
-<br>
+</label><br>
 
 <button onclick="load()">Yükle</button>
 <button onclick="togglePlay()" id="playBtn">▶ Başlat</button>
 
 <div id="ayetler"></div>
-
 <audio id="player"></audio>
 
 <script>
 
 let player = document.getElementById("player");
-let playing = false;
-let currentAyet = 1;
-let ayetList = [];
-let currentSure = 1;
+let playing=false;
+let currentAyet=1;
+let ayetList=[];
+let currentSure=1;
+let btn=document.getElementById("playBtn");
 
-let btn = document.getElementById("playBtn");
-
-// SURELER
-for(let i=1;i<=114;i++){
-    let opt=document.createElement("option");
-    opt.value=i;
-    opt.innerText=i+". Sure";
-    document.getElementById("sure").appendChild(opt);
-}
+// 🔥 SURE İSİMLERİ API'DEN
+fetch("https://api.alquran.cloud/v1/surah")
+.then(r=>r.json())
+.then(data=>{
+    data.data.forEach(s=>{
+        let opt=document.createElement("option");
+        opt.value=s.number;
+        opt.innerText = s.number + ". " + s.englishName;
+        document.getElementById("sure").appendChild(opt);
+    });
+});
 
 // YÜKLE
 function load(){
@@ -108,25 +86,22 @@ function load(){
     });
 }
 
-// AYET ÇAL (DÜZELTİLMİŞ)
+// AYET ÇAL
 function playAyet(){
     highlight();
 
-    let hoca = document.getElementById("hoca").value;
-
-    // 🔥 DOĞRU GLOBAL AYET NUMARASI
+    let hoca=document.getElementById("hoca").value;
     let globalAyet = ayetList[currentAyet-1].number;
 
-    let url = `https://cdn.islamic.network/quran/audio/128/${hoca}/${globalAyet}.mp3`;
+    let url=`https://cdn.islamic.network/quran/audio/128/${hoca}/${globalAyet}.mp3`;
 
-    player.src = url;
+    player.src=url;
     player.play();
 
     playing=true;
     btn.innerHTML="⏸ Duraklat";
 
-    // KAYDET
-    localStorage.setItem("kuran", JSON.stringify({
+    localStorage.setItem("kuran",JSON.stringify({
         sure:currentSure,
         ayet:currentAyet
     }));
@@ -170,7 +145,7 @@ function highlight(){
 
 // KALDIĞI YER
 window.onload=function(){
-    let data = JSON.parse(localStorage.getItem("kuran"));
+    let data=JSON.parse(localStorage.getItem("kuran"));
     if(data){
         document.getElementById("sure").value=data.sure;
         document.getElementById("start").value=data.ayet;
