@@ -48,6 +48,13 @@ button, select, input {
 Başlangıç ayeti:
 <input type="number" id="start" value="1"><br>
 
+🎧 Hoca:
+<select id="hoca">
+<option value="ar.alafasy">Alafasy</option>
+<option value="ar.abdurrahmaansudais">Sudais</option>
+<option value="ar.saoodshuraym">Shuraym</option>
+</select><br>
+
 <label>
 <input type="checkbox" id="autoNext" checked>
 Otomatik geç
@@ -85,8 +92,9 @@ fetch("https://api.alquran.cloud/v1/surah")
 function load(){
   let sure=document.getElementById("sure").value;
   let start=parseInt(document.getElementById("start").value)-1;
+  let hoca=document.getElementById("hoca").value;
 
-  fetch(`https://api.alquran.cloud/v1/surah/${sure}/ar.alafasy`)
+  fetch(`https://api.alquran.cloud/v1/surah/${sure}/${hoca}`)
   .then(r=>r.json())
   .then(d=>{
     ayetList=d.data.ayahs;
@@ -95,14 +103,13 @@ function load(){
   });
 }
 
-// AYETLERİ GÖSTER
+// AYETLER
 function render(){
   let div=document.getElementById("ayetler");
   div.innerHTML="";
 
   ayetList.forEach((a,i)=>{
     let key=a.number;
-
     let heart = favs.includes(key) ? "❤️" : "🤍";
 
     div.innerHTML += `
@@ -118,17 +125,11 @@ function render(){
 function play(){
   if(!ayetList.length) return;
 
-  let audio=ayetList[current].audio;
-  player.src=audio;
+  player.src = ayetList[current].audio;
   player.play();
   playing=true;
 
   highlight();
-
-  localStorage.setItem("kuran", JSON.stringify({
-    sure: document.getElementById("sure").value,
-    ayet: current
-  }));
 }
 
 // TOGGLE
@@ -141,17 +142,27 @@ function togglePlay(){
   }
 }
 
-// AYET BİTİNCE
-player.onended=()=>{
+// 🔥 GARANTİLİ GEÇİŞ
+function nextAyet(){
   current++;
 
   if(current>=ayetList.length){
     if(document.getElementById("autoNext").checked){
       current=0;
-    }else return;
+    } else return;
   }
 
   play();
+}
+
+// NORMAL
+player.onended = nextAyet;
+
+// 🔥 YEDEK SİSTEM (donarsa bile geçer)
+player.ontimeupdate = () => {
+  if(player.duration && player.currentTime >= player.duration - 0.3){
+    nextAyet();
+  }
 };
 
 // HIGHLIGHT
@@ -171,22 +182,6 @@ function toggleFav(id){
   localStorage.setItem("fav", JSON.stringify(favs));
   render();
 }
-
-// KALDIĞI YER
-window.onload=()=>{
-  let k=JSON.parse(localStorage.getItem("kuran"));
-  if(k){
-    document.getElementById("sure").value=k.sure;
-
-    fetch(`https://api.alquran.cloud/v1/surah/${k.sure}/ar.alafasy`)
-    .then(r=>r.json())
-    .then(d=>{
-      ayetList=d.data.ayahs;
-      current=k.ayet||0;
-      render();
-    });
-  }
-};
 
 </script>
 
