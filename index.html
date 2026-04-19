@@ -10,79 +10,50 @@ body{
     font-family:Arial;
     margin:0;
     user-select:none;
-    touch-action:manipulation;
 }
 
-h1{margin-top:20px;}
+.ayet{margin:15px;font-size:18px;}
+.arapca{font-size:22px;direction:rtl;}
+.aktif{background:yellow;color:black;}
+</style></head><body><h2>KURAN DİNLE PRO</h2><select id="sure"></select><br>
 
-select,input,button{
-    padding:10px;
-    margin:5px;
-    font-size:16px;
-}
-
-.ayet{
-    margin:15px;
-    font-size:18px;
-}
-
-.arapca{
-    font-size:22px;
-    direction:rtl;
-}
-
-.aktif{
-    background:yellow;
-    color:black;
-}
-
-.kalp{
-    cursor:pointer;
-    font-size:20px;
-}
-</style></head><body><h1>KURAN DİNLE PRO</h1><select id="sure"></select><br>
-
-Başlangıç ayeti:
+Başlangıç:
 <input type="number" id="baslangic" value="1"><br>
 
 Hoca:
 <select id="hoca">
 
-<option value="ar.alafasy">Alafasy</option>
-<option value="ar.husary">Husary</option>
-<option value="ar.minshawi">Minshawi</option>
-</select><br><label><input type="checkbox" id="otomatik" checked> Otomatik geç</label><br>
+<option value="Alafasy_128kbps">Alafasy</option>
+<option value="Husary_128kbps">Husary</option>
+<option value="Minshawy_Murattal_128kbps">Minshawi</option>
+</select><br><label><input type="checkbox" id="otomatik" checked> Otomatik</label><br>
 
 <button onclick="yukle()">Yükle</button>
-<button onclick="baslat()">▶ Başlat</button>
+<button onclick="baslat()">Başlat</button>
 
 <div id="liste"></div><audio id="player"></audio>
 
 <script>
 
-let sureNo = 1;
 let ayetler = [];
 let current = 0;
+let sureNo = 1;
 
-const sureSelect = document.getElementById("sure");
 const player = document.getElementById("player");
 
-// SURE LİSTESİ
-const sureler = [
-"Al-Faatiha","Al-Baqara","Aal-i-Imraan","An-Nisaa","Al-Maaida",
-"Al-An'aam","Al-A'raaf","Al-Anfaal","At-Tawba","Yunus","Hud","Yusuf"
-];
+// SURELER
+const sureler = ["Fatiha","Bakara","Ali İmran","Nisa","Maide","Enam","Araf"];
 
 sureler.forEach((s,i)=>{
-    let opt = document.createElement("option");
-    opt.value = i+1;
-    opt.textContent = (i+1)+". "+s;
-    sureSelect.appendChild(opt);
+    let o=document.createElement("option");
+    o.value=i+1;
+    o.text=(i+1)+". "+s;
+    document.getElementById("sure").appendChild(o);
 });
 
-// VERİ ÇEK
+// VERİ
 async function yukle(){
-    sureNo = sureSelect.value;
+    sureNo = document.getElementById("sure").value;
 
     let ar = await fetch(`https://api.alquran.cloud/v1/surah/${sureNo}`);
     let tr = await fetch(`https://api.alquran.cloud/v1/surah/${sureNo}/tr.diyanet`);
@@ -96,12 +67,12 @@ async function yukle(){
         no:a.numberInSurah
     }));
 
-    listeyiYaz();
+    yaz();
 }
 
-// EKRANA YAZ
-function listeyiYaz(){
-    let div = document.getElementById("liste");
+// YAZ
+function yaz(){
+    let div=document.getElementById("liste");
     div.innerHTML="";
 
     ayetler.forEach((a,i)=>{
@@ -109,14 +80,8 @@ function listeyiYaz(){
         <div class="ayet" id="a${i}">
             <div class="arapca">${a.no}. ${a.ar}</div>
             <div>${a.tr}</div>
-            <span class="kalp" onclick="fav(${i},this)">🤍</span>
         </div>`;
     });
-}
-
-// FAVORİ
-function fav(i,el){
-    el.textContent = el.textContent=="🤍" ? "❤️" : "🤍";
 }
 
 // BAŞLAT
@@ -125,7 +90,7 @@ function baslat(){
     oku();
 }
 
-// OKUMA
+// OKU
 function oku(){
 
     if(current >= ayetler.length) return;
@@ -135,19 +100,27 @@ function oku(){
 
     let hoca = document.getElementById("hoca").value;
 
-    // DOĞRU AYET NUMARASI
-    let ayetNo = ayetler[current].no.toString().padStart(3,'0');
-    let sureStr = sureNo.toString().padStart(3,'0');
+    let sure = String(sureNo).padStart(3,'0');
+    let ayet = String(ayetler[current].no).padStart(3,'0');
 
-    player.src = `https://cdn.islamic.network/quran/audio/128/${hoca}/${sureStr}${ayetNo}.mp3`;
+    // ✅ YENİ AUDIO KAYNAK (GARANTİ)
+    player.src = `https://everyayah.com/data/${hoca}/${sure}${ayet}.mp3`;
 
-    player.play();
+    player.play().catch(()=>{
+        alert("Ses başlatılamadı. Ekrana bir kere dokun ve tekrar başlat.");
+    });
 
     player.onended = ()=>{
         if(document.getElementById("otomatik").checked){
             current++;
             oku();
         }
+    };
+
+    // ❗ HATA OLURSA ATLA
+    player.onerror = ()=>{
+        current++;
+        oku();
     };
 }
 
