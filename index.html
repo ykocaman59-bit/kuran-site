@@ -6,13 +6,32 @@
 <title>Kuran Dinle PRO</title>
 
 <style>
-body{background:black;color:white;text-align:center;font-family:Arial;margin:0;user-select:none;}
-select,input,button{padding:10px;margin:6px;font-size:16px;border-radius:10px;border:none;}
-.ayet{padding:15px;border-bottom:1px solid #222;}
+body{
+  background:black;
+  color:white;
+  text-align:center;
+  font-family:Arial;
+  margin:0;
+  user-select:none;
+}
+
+select,input,button{
+  padding:10px;
+  margin:6px;
+  font-size:16px;
+  border-radius:10px;
+  border:none;
+}
+
+.ayet{
+  padding:15px;
+  border-bottom:1px solid #222;
+}
+
 .ar{font-size:26px;}
 .tr{font-size:14px;color:#aaa;}
-.active{background:yellow;color:black;}
-.kalp{cursor:pointer;font-size:20px;}
+
+.kalp{font-size:20px;cursor:pointer;}
 </style>
 </head>
 
@@ -40,7 +59,6 @@ Başlangıç:
 <script>
 
 let data=[];
-let i=0;
 let sura=1;
 
 const p=document.getElementById("p");
@@ -59,20 +77,23 @@ fetch("https://api.alquran.cloud/v1/surah")
 
 // YÜKLE
 function load(){
-  sura=sure.value;
+
+  sura = document.getElementById("sure").value;
 
   Promise.all([
-    fetch(`https://api.alquran.cloud/v1/surah/${sura}/ar.alafasy`).then(r=>r.json()),
+    fetch(`https://api.alquran.cloud/v1/surah/${sura}`).then(r=>r.json()),
     fetch(`https://api.alquran.cloud/v1/surah/${sura}/tr.diyanet`).then(r=>r.json())
   ])
   .then(([ar,tr])=>{
 
-    data=ar.data.ayahs;
+    data = ar.data.ayahs;
+
+    let list = document.getElementById("list");
     list.innerHTML="";
 
     data.forEach((a,x)=>{
 
-      let fav=localStorage.getItem("fav_"+sura+"_"+x)=="1";
+      let fav = localStorage.getItem("fav_"+sura+"_"+x)=="1";
 
       let div=document.createElement("div");
       div.className="ayet";
@@ -81,7 +102,7 @@ function load(){
       div.innerHTML=`
         <div class="ar">${a.text}</div>
         <div class="tr">${tr.data.ayahs[x].text}</div>
-        <div class="kalp" onclick="favToggle(${x})">
+        <div class="kalp" onclick="favToggle(event,${x})">
           ${fav?"❤️":"🤍"}
         </div>
       `;
@@ -89,12 +110,13 @@ function load(){
       list.appendChild(div);
     });
 
-    p.src="";
   });
 }
 
 // FAVORİ
-function favToggle(x){
+function favToggle(e,x){
+  e.stopPropagation();
+
   let key="fav_"+sura+"_"+x;
 
   if(localStorage.getItem(key)){
@@ -103,65 +125,79 @@ function favToggle(x){
     localStorage.setItem(key,"1");
   }
 
-  load();
+  let el=document.getElementById("a"+x).querySelector(".kalp");
+  el.innerHTML = localStorage.getItem(key) ? "❤️" : "🤍";
 }
 
-// BAŞLAT
+// ▶️ BAŞLAT
 function startPlay(){
-  if(data.length===0) return;
 
-  i = document.getElementById("start").value - 1;
-  play();
+  sura = document.getElementById("sure").value;
+
+  let no = String(sura).padStart(3,'0');
+
+  p.src = `https://server8.mp3quran.net/afs/${no}.mp3`;
+
+  // kayıt varsa kaldığı yerden devam et
+  let k = JSON.parse(localStorage.getItem("kuran"));
+  if(k && k.sura == sura){
+    p.currentTime = k.time;
+  }
+
+  p.play();
 }
 
-// DURAKLAT
+// ⏸ DURAKLAT
 function pausePlay(){
   p.pause();
 }
 
-// OYNAT
-function play(){
+// 💾 SÜREKLİ KAYDET
+p.ontimeupdate = () => {
+  localStorage.setItem("kuran", JSON.stringify({
+    sura: sura,
+    time: p.currentTime
+  }));
+};
 
-  if(i>=data.length){
-    nextSurah();
-    return;
+// 🔁 AÇILINCA GERİ YÜKLE
+window.onload = () => {
+
+  let k = JSON.parse(localStorage.getItem("kuran"));
+
+  if(k){
+
+    sura = k.sura;
+    document.getElementById("sure").value = sura;
+
+    load();
+
+    setTimeout(()=>{
+      let no = String(sura).padStart(3,'0');
+      p.src = `https://server8.mp3quran.net/afs/${no}.mp3`;
+      p.currentTime = k.time;
+    },1000);
+
   }
+};
 
-  p.src = data[i].audio;
-  p.load(); // KRİTİK
+// 🔄 SONRAKİ SURE
+p.onended = function(){
 
-  document.querySelectorAll(".ayet").forEach(e=>e.classList.remove("active"));
-
-  let el=document.getElementById("a"+i);
-  if(el){
-    el.classList.add("active");
-    el.scrollIntoView({behavior:"smooth",block:"center"});
-  }
-
-  p.play().catch(()=>{});
-
-  p.onended = ()=>{
-    i++;
-    play();
-  };
-}
-
-// SONRAKİ SURE
-function nextSurah(){
-  if(!auto.checked) return;
+  if(!document.getElementById("auto").checked) return;
 
   sura++;
+
   if(sura>114) return;
 
-  sure.value=sura;
+  document.getElementById("sure").value = sura;
 
   load();
 
   setTimeout(()=>{
-    i=0;
-    play();
+    startPlay();
   },1000);
-}
+};
 
 </script>
 
