@@ -31,6 +31,11 @@ button, select, input {
   color:black;
 }
 
+.meal {
+  font-size:13px;
+  color:#aaa;
+}
+
 .fav {
   pointer-events:auto;
   cursor:pointer;
@@ -71,12 +76,10 @@ Otomatik geç
 
 let player = document.getElementById("player");
 let ayetList = [];
+let mealList = [];
 let current = 0;
 let playing = false;
 let favs = JSON.parse(localStorage.getItem("fav")||"[]");
-
-// 🔥 GEÇİŞ KİLİDİ (TEKRAR ENGEL)
-let switching = false;
 
 // SURELER
 fetch("https://api.alquran.cloud/v1/surah")
@@ -91,18 +94,21 @@ fetch("https://api.alquran.cloud/v1/surah")
   });
 });
 
-// YÜKLE
+// YÜKLE (TEK API)
 function load(){
   let sure=document.getElementById("sure").value;
   let start=parseInt(document.getElementById("start").value)-1;
   let hoca=document.getElementById("hoca").value;
 
-  fetch(`https://api.alquran.cloud/v1/surah/${sure}/${hoca}`)
+  fetch(`https://api.alquran.cloud/v1/surah/${sure}/editions/${hoca},tr.diyanet`)
   .then(r=>r.json())
   .then(d=>{
-    ayetList=d.data.ayahs;
-    current=start>=0?start:0;
+    ayetList = d.data[0].ayahs; // SES
+    mealList = d.data[1].ayahs; // MEAL
+    current = start>=0?start:0;
+
     render();
+    play();
   });
 }
 
@@ -119,6 +125,7 @@ function render(){
       <div class="ayet" id="a${i}">
         ${i+1}. ${a.text}
         <span class="fav" onclick="event.stopPropagation();toggleFav(${key})">${heart}</span>
+        <div class="meal">${mealList[i].text}</div>
       </div>
     `;
   });
@@ -127,8 +134,6 @@ function render(){
 // PLAY
 function play(){
   if(!ayetList.length) return;
-
-  switching = false; // reset
 
   player.src = ayetList[current].audio;
   player.play();
@@ -147,12 +152,8 @@ function togglePlay(){
   }
 }
 
-// 🔥 TEK GEÇİŞ SİSTEMİ
+// 🔥 AYET BİTİNCE (TEMİZ)
 player.onended = () => {
-
-  if(switching) return; // tekrar engelle
-  switching = true;
-
   current++;
 
   if(current >= ayetList.length){
@@ -164,9 +165,7 @@ player.onended = () => {
     }
   }
 
-  setTimeout(()=>{
-    play();
-  }, 300);
+  play();
 };
 
 // HIGHLIGHT
