@@ -1,164 +1,210 @@
-<!DOCTYPE html><html lang="tr">
+<!DOCTYPE html>
+<html lang="tr">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Kuran Dinle PRO</title><style>
+<title>Kuran Dinle PRO</title>
+
+<style>
 body {
-  background: #111;
+  background: #000;
   color: white;
   text-align: center;
   font-family: Arial;
-  margin:0;
-  user-select:none;
+  margin: 0;
+  user-select: none;
 }
 
-button, select, input {
+h1 {
+  margin-top: 20px;
+}
+
+select, input, button {
   padding: 10px;
-  margin: 5px;
+  margin: 8px;
   font-size: 16px;
+  border-radius: 8px;
+  border: none;
+}
+
+button {
+  cursor: pointer;
 }
 
 .ayet {
   padding: 12px;
+  font-size: 20px;
 }
 
 .arapca {
-  font-size: 22px;
-  direction: rtl;
+  font-size: 26px;
+  margin-bottom: 5px;
 }
 
 .meal {
-  font-size: 16px;
-  opacity: 0.8;
+  font-size: 14px;
+  color: #aaa;
 }
 
 .active {
   background: yellow;
   color: black;
 }
-</style></head><body><h1>KURAN DİNLE PRO</h1><select id="sureSelect"></select><br>
+</style>
+</head>
+
+<body>
+
+<h1>KURAN DİNLE PRO</h1>
+
+<select id="sureSelect"></select>
+
+<br>
 
 Başlangıç ayeti:
-<input type="number" id="startAyet" value="1" min="1"><br>
+<input type="number" id="startAyet" value="1" min="1">
+
+<br>
 
 <label>
-<input type="checkbox" id="autoNext" checked>
-Otomatik sonraki sure
-</label><br><button onclick="loadSurah()">Yükle</button>
-<button onclick="playAudio()">Başlat</button>
+<input type="checkbox" id="autoNext">
+Otomatik sure geç
+</label>
 
-<div id="ayetler"></div><audio id="player"></audio>
+<br>
+
+<button onclick="loadSurah()">Yükle</button>
+<button id="playBtn" onclick="togglePlay()">▶ Başlat</button>
+
+<div id="ayetler"></div>
+
+<audio id="player"></audio>
 
 <script>
 
-let ayetData = [];
+let ayetler = [];
 let current = 0;
 let currentSurah = 1;
 let player = document.getElementById("player");
+let playing = false;
 
-// SURELER
+// SURELERİ ÇEK
 fetch("https://api.alquran.cloud/v1/surah")
-.then(res => res.json())
-.then(data => {
+.then(r => r.json())
+.then(d => {
   let select = document.getElementById("sureSelect");
 
-  data.data.forEach(s => {
+  d.data.forEach(s => {
     let opt = document.createElement("option");
     opt.value = s.number;
-    opt.innerText = s.number + ". " + s.englishName;
+    opt.textContent = s.number + ". " + s.englishName;
     select.appendChild(opt);
   });
 });
 
-// SURE YÜKLE
-async function loadSurah() {
+// SURE YÜKLE (ARAPÇA + TÜRKÇE)
+function loadSurah(){
 
   currentSurah = document.getElementById("sureSelect").value;
 
-  let ar = await fetch(`https://api.alquran.cloud/v1/surah/${currentSurah}/ar.alafasy`);
-  let tr = await fetch(`https://api.alquran.cloud/v1/surah/${currentSurah}/tr.diyanet`);
+  Promise.all([
+    fetch(`https://api.alquran.cloud/v1/surah/${currentSurah}/ar.alafasy`).then(r=>r.json()),
+    fetch(`https://api.alquran.cloud/v1/surah/${currentSurah}/tr.diyanet`).then(r=>r.json())
+  ])
+  .then(([ar, tr]) => {
 
-  let arData = await ar.json();
-  let trData = await tr.json();
+    ayetler = ar.data.ayahs;
 
-  ayetData = arData.data.ayahs.map((a,i)=>({
-    ar:a.text,
-    tr:trData.data.ayahs[i].text,
-    audio:a.audio
-  }));
+    let div = document.getElementById("ayetler");
+    div.innerHTML = "";
 
-  let div = document.getElementById("ayetler");
-  div.innerHTML = "";
+    ayetler.forEach((a, i) => {
 
-  ayetData.forEach((a,i)=>{
-    div.innerHTML += `
-      <div class="ayet" id="a${i}">
-        <div class="arapca">${i+1}. ${a.ar}</div>
-        <div class="meal">${a.tr}</div>
-      </div>
-    `;
+      let el = document.createElement("div");
+      el.className = "ayet";
+      el.id = "a" + i;
+
+      el.innerHTML = `
+        <div class="arapca">${a.text}</div>
+        <div class="meal">${tr.data.ayahs[i].text}</div>
+      `;
+
+      div.appendChild(el);
+    });
+
+    player.src = "";
+    current = 0;
+    document.getElementById("playBtn").innerHTML = "▶ Başlat";
+
   });
 }
 
-// BAŞLAT
-function playAudio() {
-  let start = document.getElementById("startAyet").value;
-  current = start - 1;
-  playNext();
+// TEK BUTON (PLAY / PAUSE)
+function togglePlay(){
+
+  if(player.src == ""){
+    let start = document.getElementById("startAyet").value;
+    current = start - 1;
+    playNext();
+    return;
+  }
+
+  if(player.paused){
+    player.play();
+    document.getElementById("playBtn").innerHTML = "⏸ Duraklat";
+  }else{
+    player.pause();
+    document.getElementById("playBtn").innerHTML = "▶ Başlat";
+  }
 }
 
-// AYET AYET OYNAT
-function playNext() {
+// AYET OYNAT
+function playNext(){
 
-  if (current >= ayetData.length) {
+  if(current >= ayetler.length){
     nextSurah();
     return;
   }
 
-  player.src = ayetData[current].audio;
+  player.src = ayetler[current].audio;
 
-  document.querySelectorAll(".ayet").forEach(e => e.classList.remove("active"));
+  document.querySelectorAll(".ayet").forEach(e=>e.classList.remove("active"));
 
-  let aktif = document.getElementById("a" + current);
-  if (aktif) aktif.classList.add("active");
-
-  if (aktif) aktif.scrollIntoView({ behavior: "smooth", block: "center" });
+  let aktif = document.getElementById("a"+current);
+  if(aktif){
+    aktif.classList.add("active");
+    aktif.scrollIntoView({behavior:"smooth", block:"center"});
+  }
 
   player.play().catch(()=>{});
 
-  // ✅ EN KRİTİK FIX
-  player.onended = () => {
-    current++;
-    setTimeout(playNext, 300);
-  };
+  document.getElementById("playBtn").innerHTML = "⏸ Duraklat";
 
-  // ❗ TAKILIRSA ATLA
-  player.onerror = () => {
+  player.onended = () => {
     current++;
     playNext();
   };
 }
 
 // SONRAKİ SURE
-function nextSurah() {
+function nextSurah(){
 
-  let auto = document.getElementById("autoNext").checked;
-
-  if (!auto) return;
+  if(!document.getElementById("autoNext").checked) return;
 
   currentSurah++;
 
-  if (currentSurah > 114) return;
+  if(currentSurah > 114) return;
 
   document.getElementById("sureSelect").value = currentSurah;
 
   loadSurah();
 
-  setTimeout(() => {
+  setTimeout(()=>{
     current = 0;
     playNext();
-  }, 1000);
+  }, 1200);
 }
 
-</script></body>
+</script>
+
+</body>
 </html>
