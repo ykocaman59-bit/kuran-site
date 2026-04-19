@@ -6,13 +6,55 @@
 <title>Kuran Dinle PRO</title>
 
 <style>
-body{background:black;color:white;text-align:center;font-family:Arial;margin:0;user-select:none;}
-select,input,button{padding:10px;margin:6px;font-size:16px;border-radius:10px;border:none;}
-.ayet{padding:15px;border-bottom:1px solid #222;}
-.ar{font-size:26px;}
-.tr{font-size:14px;color:#aaa;}
-.active{background:yellow;color:black;}
-.kalp{cursor:pointer;font-size:20px;}
+body{
+  background: linear-gradient(to bottom, #000000, #111827);
+  color:white;
+  text-align:center;
+  font-family:Arial;
+  margin:0;
+  user-select:none;
+}
+
+h1{
+  margin-top:20px;
+}
+
+select,input,button{
+  padding:12px;
+  margin:6px;
+  font-size:16px;
+  border-radius:12px;
+  border:none;
+}
+
+button{
+  cursor:pointer;
+}
+
+.ayet{
+  padding:18px;
+  border-bottom:1px solid #222;
+  transition:0.3s;
+}
+
+.active{
+  background:yellow;
+  color:black;
+}
+
+.ar{
+  font-size:26px;
+}
+
+.tr{
+  font-size:14px;
+  color:#aaa;
+}
+
+.kalp{
+  font-size:22px;
+  cursor:pointer;
+}
 </style>
 </head>
 
@@ -23,7 +65,7 @@ select,input,button{padding:10px;margin:6px;font-size:16px;border-radius:10px;bo
 <select id="sure"></select><br>
 
 Başlangıç:
-<input type="number" id="start" value="1"><br>
+<input type="number" id="start" value="1" min="1"><br>
 
 <label>
 <input type="checkbox" id="auto"> Otomatik geç
@@ -40,7 +82,7 @@ Başlangıç:
 <script>
 
 let data=[];
-let i=0;
+let current=0;
 let sura=1;
 
 const p=document.getElementById("p");
@@ -59,7 +101,8 @@ fetch("https://api.alquran.cloud/v1/surah")
 
 // YÜKLE
 function load(){
-  sura=sure.value;
+
+  sura = document.getElementById("sure").value;
 
   Promise.all([
     fetch(`https://api.alquran.cloud/v1/surah/${sura}/ar.alafasy`).then(r=>r.json()),
@@ -67,12 +110,14 @@ function load(){
   ])
   .then(([ar,tr])=>{
 
-    data=ar.data.ayahs;
+    data = ar.data.ayahs;
+
+    let list=document.getElementById("list");
     list.innerHTML="";
 
     data.forEach((a,x)=>{
 
-      let fav=localStorage.getItem("fav_"+sura+"_"+x)=="1";
+      let fav = localStorage.getItem("fav_"+sura+"_"+x)=="1";
 
       let div=document.createElement("div");
       div.className="ayet";
@@ -81,7 +126,7 @@ function load(){
       div.innerHTML=`
         <div class="ar">${a.text}</div>
         <div class="tr">${tr.data.ayahs[x].text}</div>
-        <div class="kalp" onclick="favToggle(${x})">
+        <div class="kalp" onclick="favToggle(event,${x})">
           ${fav?"❤️":"🤍"}
         </div>
       `;
@@ -89,12 +134,13 @@ function load(){
       list.appendChild(div);
     });
 
-    p.src="";
   });
 }
 
-// FAVORİ
-function favToggle(x){
+// FAVORİ (Sesi bozmaz)
+function favToggle(e,x){
+  e.stopPropagation();
+
   let key="fav_"+sura+"_"+x;
 
   if(localStorage.getItem(key)){
@@ -103,15 +149,17 @@ function favToggle(x){
     localStorage.setItem(key,"1");
   }
 
-  load();
+  let el=document.getElementById("a"+x).querySelector(".kalp");
+  el.innerHTML = localStorage.getItem(key) ? "❤️" : "🤍";
 }
 
 // BAŞLAT
 function startPlay(){
-  if(data.length===0) return;
 
-  i = document.getElementById("start").value - 1;
-  play();
+  let start = document.getElementById("start").value;
+  current = start - 1;
+
+  playNext();
 }
 
 // DURAKLAT
@@ -119,47 +167,49 @@ function pausePlay(){
   p.pause();
 }
 
-// OYNAT
-function play(){
+// AYET AYET OYNAT
+function playNext(){
 
-  if(i>=data.length){
+  if(current >= data.length){
     nextSurah();
     return;
   }
 
-  p.src = data[i].audio;
-  p.load(); // KRİTİK
+  p.src = data[current].audio;
 
   document.querySelectorAll(".ayet").forEach(e=>e.classList.remove("active"));
 
-  let el=document.getElementById("a"+i);
-  if(el){
-    el.classList.add("active");
-    el.scrollIntoView({behavior:"smooth",block:"center"});
+  let aktif = document.getElementById("a"+current);
+
+  if(aktif){
+    aktif.classList.add("active");
+    aktif.scrollIntoView({behavior:"smooth",block:"center"});
   }
 
   p.play().catch(()=>{});
 
   p.onended = ()=>{
-    i++;
-    play();
+    current++;
+    playNext();
   };
 }
 
 // SONRAKİ SURE
 function nextSurah(){
-  if(!auto.checked) return;
+
+  if(!document.getElementById("auto").checked) return;
 
   sura++;
+
   if(sura>114) return;
 
-  sure.value=sura;
+  document.getElementById("sure").value = sura;
 
   load();
 
   setTimeout(()=>{
-    i=0;
-    play();
+    current=0;
+    playNext();
   },1000);
 }
 
