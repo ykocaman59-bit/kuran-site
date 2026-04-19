@@ -94,17 +94,16 @@ fetch("https://api.alquran.cloud/v1/surah")
   });
 });
 
-// YÜKLE (TEK API)
+// YÜKLE
 function load(){
-  let sure=document.getElementById("sure").value;
+  let sure=parseInt(document.getElementById("sure").value);
   let start=parseInt(document.getElementById("start").value)-1;
-  let hoca=document.getElementById("hoca").value;
 
-  fetch(`https://api.alquran.cloud/v1/surah/${sure}/editions/${hoca},tr.diyanet`)
+  fetch(`https://api.alquran.cloud/v1/surah/${sure}/tr.diyanet`)
   .then(r=>r.json())
   .then(d=>{
-    ayetList = d.data[0].ayahs; // SES
-    mealList = d.data[1].ayahs; // MEAL
+    ayetList = d.data.ayahs;
+    mealList = d.data.ayahs;
     current = start>=0?start:0;
 
     render();
@@ -125,20 +124,25 @@ function render(){
       <div class="ayet" id="a${i}">
         ${i+1}. ${a.text}
         <span class="fav" onclick="event.stopPropagation();toggleFav(${key})">${heart}</span>
-        <div class="meal">${mealList[i].text}</div>
+        <div class="meal">${a.text}</div>
       </div>
     `;
   });
 }
 
+// 🔥 DOĞRU AUDIO (GLOBAL AYET)
+function getAudio(){
+  let hoca=document.getElementById("hoca").value;
+  let global = ayetList[current].number;
+
+  return `https://cdn.islamic.network/quran/audio/128/${hoca}/${global}.mp3`;
+}
+
 // PLAY
 function play(){
-  if(!ayetList.length) return;
-
-  player.src = ayetList[current].audio;
+  player.src = getAudio();
   player.play();
   playing=true;
-
   highlight();
 }
 
@@ -152,7 +156,7 @@ function togglePlay(){
   }
 }
 
-// 🔥 AYET BİTİNCE (TEMİZ)
+// 🔥 KESİN GEÇİŞ
 player.onended = () => {
   current++;
 
@@ -160,12 +164,12 @@ player.onended = () => {
     if(document.getElementById("autoNext").checked){
       current = 0;
     } else {
-      playing = false;
+      playing=false;
       return;
     }
   }
 
-  play();
+  setTimeout(play, 200);
 };
 
 // HIGHLIGHT
