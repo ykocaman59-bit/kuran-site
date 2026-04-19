@@ -2,6 +2,8 @@
 <html lang="tr">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
 <title>Kuran Dinle PRO</title>
 
 <style>
@@ -10,6 +12,7 @@ select,input,button {padding:8px;margin:5px;font-size:16px;}
 .ayet {padding:10px;}
 .active {background:yellow;color:black;}
 .meal {font-size:13px;color:#aaa;}
+.fav {color:gold;cursor:pointer;}
 </style>
 </head>
 
@@ -42,50 +45,50 @@ Sonraki sureye otomatik geç
 
 <script>
 
-let player = document.getElementById("player");
+let player=document.getElementById("player");
 let playing=false;
 let currentAyet=1;
 let ayetList=[];
 let currentSure=1;
 let btn=document.getElementById("playBtn");
 
-// SURELERİ YÜKLE
+// SURELER
 fetch("https://api.alquran.cloud/v1/surah")
 .then(r=>r.json())
 .then(data=>{
-    let select = document.getElementById("sure");
+    let select=document.getElementById("sure");
 
     data.data.forEach(s=>{
         let opt=document.createElement("option");
         opt.value=s.number;
-        opt.innerText = s.number + ". " + s.englishName;
+        opt.innerText=s.number+". "+s.englishName;
         select.appendChild(opt);
     });
 
-    // KALDIĞI YERİ YÜKLE
-    let saved = JSON.parse(localStorage.getItem("kuran"));
+    let saved=JSON.parse(localStorage.getItem("kuran"));
     if(saved){
-        select.value = saved.sure;
-        document.getElementById("start").value = saved.ayet;
+        select.value=saved.sure;
+        document.getElementById("start").value=saved.ayet;
     }
 });
 
 // YÜKLE
 function load(){
-    currentSure = document.getElementById("sure").value;
-    currentAyet = parseInt(document.getElementById("start").value);
+    currentSure=parseInt(document.getElementById("sure").value);
+    currentAyet=parseInt(document.getElementById("start").value);
 
     fetch(`https://api.alquran.cloud/v1/surah/${currentSure}/editions/quran-uthmani,tr.diyanet`)
     .then(r=>r.json())
     .then(data=>{
-        ayetList = data.data[0].ayahs;
-        let mealList = data.data[1].ayahs;
+        ayetList=data.data[0].ayahs;
+        let mealList=data.data[1].ayahs;
 
         let html="";
         ayetList.forEach((a,i)=>{
             html+=`
             <div class="ayet" id="a${i+1}">
-            ${i+1}. ${a.text}
+            ${i+1}. ${a.text} 
+            <span class="fav" onclick="fav(${i+1})">⭐</span>
             <div class="meal">${mealList[i].text}</div>
             </div>`;
         });
@@ -95,14 +98,16 @@ function load(){
     });
 }
 
-// AYET ÇAL
+// AYET ÇAL (FIXLİ)
 function playAyet(){
     highlight();
 
     let hoca=document.getElementById("hoca").value;
-    let globalAyet = ayetList[currentAyet-1].number;
 
-    let url=`https://cdn.islamic.network/quran/audio/128/${hoca}/${globalAyet}.mp3`;
+    // 🔥 DOĞRU AUDIO ID
+    let ayetNo = String(currentSure).padStart(3,'0') + String(currentAyet).padStart(3,'0');
+
+    let url=`https://cdn.islamic.network/quran/audio/128/${hoca}/${ayetNo}.mp3`;
 
     player.src=url;
     player.play();
@@ -110,7 +115,6 @@ function playAyet(){
     playing=true;
     btn.innerHTML="⏸ Duraklat";
 
-    // KAYDET
     localStorage.setItem("kuran",JSON.stringify({
         sure:currentSure,
         ayet:currentAyet
@@ -130,7 +134,7 @@ function togglePlay(){
     }
 }
 
-// AYET BİTİNCE
+// BİTİNCE
 player.onended=function(){
     currentAyet++;
 
@@ -151,6 +155,14 @@ function highlight(){
     document.querySelectorAll(".ayet").forEach(e=>e.classList.remove("active"));
     let el=document.getElementById("a"+currentAyet);
     if(el) el.classList.add("active");
+}
+
+// FAVORİ
+function fav(a){
+    let favs=JSON.parse(localStorage.getItem("fav")||"[]");
+    favs.push({sure:currentSure,ayet:a});
+    localStorage.setItem("fav",JSON.stringify(favs));
+    alert("Favorilere eklendi ⭐");
 }
 
 </script>
