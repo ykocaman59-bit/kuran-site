@@ -15,17 +15,19 @@ body{
   user-select:none;
 }
 
+h1{margin-top:20px;}
+
 select,input,button{
   padding:10px;
   margin:6px;
   font-size:16px;
-  border-radius:8px;
+  border-radius:10px;
   border:none;
 }
 
 .ayet{
-  padding:12px;
-  font-size:20px;
+  padding:15px;
+  border-bottom:1px solid #222;
 }
 
 .ar{
@@ -44,7 +46,7 @@ select,input,button{
 
 .kalp{
   cursor:pointer;
-  margin-left:10px;
+  font-size:20px;
 }
 </style>
 </head>
@@ -56,7 +58,7 @@ select,input,button{
 <select id="sure"></select><br>
 
 Başlangıç:
-<input type="number" id="start" value="1"><br>
+<input type="number" id="start" value="1" min="1"><br>
 
 <label>
 <input type="checkbox" id="auto"> Otomatik geç
@@ -74,22 +76,29 @@ Başlangıç:
 let data=[];
 let i=0;
 let sura=1;
-let p=document.getElementById("p");
 
-// sure listesi
+const p=document.getElementById("p");
+const btn=document.getElementById("btn");
+const list=document.getElementById("list");
+const sure=document.getElementById("sure");
+const start=document.getElementById("start");
+const auto=document.getElementById("auto");
+
+// SURE LİSTESİ
 fetch("https://api.alquran.cloud/v1/surah")
 .then(r=>r.json())
 .then(d=>{
   d.data.forEach(s=>{
     let o=document.createElement("option");
     o.value=s.number;
-    o.textContent=s.number+"."+s.englishName;
+    o.textContent=s.number+". "+s.englishName;
     sure.appendChild(o);
   });
 });
 
-// yükle
+// YÜKLE
 function load(){
+
   sura=sure.value;
 
   Promise.all([
@@ -99,36 +108,36 @@ function load(){
   .then(([ar,tr])=>{
 
     data=ar.data.ayahs;
-
     list.innerHTML="";
 
     data.forEach((a,x)=>{
 
       let fav=localStorage.getItem("fav_"+sura+"_"+x)=="1";
 
-      let d=document.createElement("div");
-      d.className="ayet";
-      d.id="a"+x;
+      let div=document.createElement("div");
+      div.className="ayet";
+      div.id="a"+x;
 
-      d.innerHTML=`
-      <div class="ar">${a.text}</div>
-      <div class="tr">${tr.data.ayahs[x].text}</div>
-      <span class="kalp" onclick="favToggle(${x})">${fav?"❤️":"🤍"}</span>
+      div.innerHTML=`
+        <div class="ar">${a.text}</div>
+        <div class="tr">${tr.data.ayahs[x].text}</div>
+        <div class="kalp" onclick="favToggle(${x})">
+          ${fav?"❤️":"🤍"}
+        </div>
       `;
 
-      list.appendChild(d);
+      list.appendChild(div);
     });
 
     p.src="";
   });
 }
 
-// favori toggle
+// FAVORİ
 function favToggle(x){
   let key="fav_"+sura+"_"+x;
-  let val=localStorage.getItem(key);
 
-  if(val=="1"){
+  if(localStorage.getItem(key)){
     localStorage.removeItem(key);
   }else{
     localStorage.setItem(key,"1");
@@ -137,29 +146,31 @@ function favToggle(x){
   load();
 }
 
-// başlat/duraklat
+// BAŞLAT / DURAKLAT
 function toggle(){
 
-  if(p.src==""){
-    i=start.value-1;
+  if(!p.src){
+    i = start.value - 1;
     play();
     return;
   }
 
-  if(p.paused){
-    p.play();
-    btn.innerHTML="⏸";
-  }else{
+  if(!p.paused){
     p.pause();
-    btn.innerHTML="▶";
+    btn.innerHTML="▶ Başlat";
+    return;
   }
+
+  p.play().then(()=>{
+    btn.innerHTML="⏸ Duraklat";
+  });
 }
 
-// oynat
+// OYNAT
 function play(){
 
   if(i>=data.length){
-    next();
+    nextSurah();
     return;
   }
 
@@ -173,23 +184,29 @@ function play(){
     el.scrollIntoView({behavior:"smooth",block:"center"});
   }
 
-  p.play().catch(()=>{});
-  btn.innerHTML="⏸";
+  setTimeout(()=>{
+    p.play().catch(()=>{});
+  },100);
 
-  p.onended=()=>{
+  btn.innerHTML="⏸ Duraklat";
+
+  p.onended=null;
+  p.addEventListener("ended",()=>{
     i++;
     play();
-  };
+  },{once:true});
 }
 
-// sonraki sure
-function next(){
+// SONRAKİ SURE
+function nextSurah(){
+
   if(!auto.checked) return;
 
   sura++;
   if(sura>114) return;
 
   sure.value=sura;
+
   load();
 
   setTimeout(()=>{
