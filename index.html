@@ -3,64 +3,117 @@
 <head>
 <meta charset="UTF-8">
 <title>Kuran Dinle</title>
+
 <style>
 body {
-    font-family: Arial;
-    text-align: center;
     background: #111;
     color: white;
+    text-align: center;
+    font-family: Arial;
 }
+
 button {
     padding: 10px;
-    margin: 5px;
+    margin: 10px;
     font-size: 16px;
 }
+
+.ayet {
+    padding: 10px;
+}
+
 .active {
-    color: yellow;
+    background: yellow;
+    color: black;
 }
 </style>
 </head>
+
 <body>
 
 <h1>KURAN DİNLE</h1>
 
-<select id="sure">
-<option value="1">Fatiha</option>
-<option value="2">Bakara</option>
-</select>
-
+<select id="sureSelect"></select>
 <br><br>
 
-<button onclick="baslat()">Başlat</button>
+<button onclick="loadSurah()">Yükle</button>
+<button onclick="playAudio()">Başlat</button>
 
-<p id="ayet"></p>
+<div id="ayetler"></div>
 
-<audio id="audio" controls></audio>
+<br>
+<audio id="player" controls></audio>
 
 <script>
-let ayetler = {
-1: [
-"Bismillahirrahmanirrahim",
-"Elhamdülillahi rabbil alemin",
-"Errahmanirrahim",
-"Maliki yevmiddin",
-"İyyake na'budu ve iyyake nesta'in",
-"İhdinas sıratal müstakim",
-"Sıratallezine en'amte aleyhim"
-]
-};
 
-let index = 0;
+let ayetData = [];
 
-function baslat(){
-let sure = document.getElementById("sure").value;
-let audio = document.getElementById("audio");
+// SURELERİ ÇEK
+fetch("https://api.alquran.cloud/v1/surah")
+.then(res => res.json())
+.then(data => {
+    let select = document.getElementById("sureSelect");
+    data.data.forEach(s => {
+        let opt = document.createElement("option");
+        opt.value = s.number;
+        opt.innerText = s.englishName;
+        select.appendChild(opt);
+    });
+});
 
-audio.src = "https://download.quranicaudio.com/quran/mishaari_raashid_al_3afaasee/001.mp3";
-audio.play();
+// SURE YÜKLE
+function loadSurah() {
+    let no = document.getElementById("sureSelect").value;
 
-index = 0;
+    fetch(`https://api.alquran.cloud/v1/surah/${no}/ar.alafasy`)
+    .then(res => res.json())
+    .then(data => {
 
-setInterval(()=>{
-if(ayetler[sure] && ayetler[sure][index]){
-document.getElementById("ayet").innerText = ay
+        ayetData = data.data.ayahs;
+
+        let div = document.getElementById("ayetler");
+        div.innerHTML = "";
+
+        ayetData.forEach((a, i) => {
+            let p = document.createElement("div");
+            p.className = "ayet";
+            p.id = "a" + i;
+            p.innerText = a.text;
+            div.appendChild(p);
+        });
+    });
+}
+
+let current = 0;
+
+// BAŞLAT
+function playAudio() {
+    current = 0;
+    playNext();
+}
+
+// SONRAKİ AYET
+function playNext() {
+
+    if (current >= ayetData.length) return;
+
+    let player = document.getElementById("player");
+    player.src = ayetData[current].audio;
+
+    // aktif ayeti sarı yap
+    document.querySelectorAll(".ayet").forEach(e => e.classList.remove("active"));
+    let aktif = document.getElementById("a" + current);
+    if (aktif) aktif.classList.add("active");
+
+    player.play();
+
+    player.onended = () => {
+        current++;
+        playNext();
+    };
+}
+
+</script>
+
+</body>
+</html>
