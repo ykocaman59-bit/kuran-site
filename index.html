@@ -6,27 +6,33 @@
 
 <style>
 body {
-    background: #111;
-    color: white;
-    text-align: center;
-    font-family: Arial;
+  background: #111;
+  color: white;
+  text-align: center;
+  font-family: Arial;
 }
 
 button {
-    padding: 10px;
-    margin: 10px;
-    font-size: 16px;
+  padding: 10px;
+  margin: 10px;
+  font-size: 16px;
+}
+
+input {
+  padding: 8px;
+  width: 60px;
 }
 
 .ayet {
-    padding: 10px;
+  padding: 10px;
 }
 
 .active {
-    background: yellow;
-    color: black;
+  background: yellow;
+  color: black;
 }
 </style>
+
 </head>
 
 <body>
@@ -34,6 +40,10 @@ button {
 <h1>KURAN DİNLE</h1>
 
 <select id="sureSelect"></select>
+<br><br>
+
+Başlangıç ayeti: <input type="number" id="startAyet" value="1" min="1">
+
 <br><br>
 
 <button onclick="loadSurah()">Yükle</button>
@@ -47,70 +57,78 @@ button {
 <script>
 
 let ayetData = [];
+let current = 0;
 
 // SURELERİ ÇEK
 fetch("https://api.alquran.cloud/v1/surah")
 .then(res => res.json())
 .then(data => {
-    let select = document.getElementById("sureSelect");
-    data.data.forEach(s => {
-        let opt = document.createElement("option");
-        opt.value = s.number;
-        opt.innerText = s.englishName;
-        select.appendChild(opt);
-    });
+  let select = document.getElementById("sureSelect");
+
+  data.data.forEach(s => {
+    let opt = document.createElement("option");
+    opt.value = s.number;
+    opt.innerText = s.number + ". " + s.englishName;
+    select.appendChild(opt);
+  });
 });
 
 // SURE YÜKLE
 function loadSurah() {
-    let no = document.getElementById("sureSelect").value;
 
-    fetch(`https://api.alquran.cloud/v1/surah/${no}/ar.alafasy`)
-    .then(res => res.json())
-    .then(data => {
+  let no = document.getElementById("sureSelect").value;
 
-        ayetData = data.data.ayahs;
+  fetch(`https://api.alquran.cloud/v1/surah/${no}/ar.alafasy`)
+  .then(res => res.json())
+  .then(data => {
 
-        let div = document.getElementById("ayetler");
-        div.innerHTML = "";
+    ayetData = data.data.ayahs;
 
-        ayetData.forEach((a, i) => {
-            let p = document.createElement("div");
-            p.className = "ayet";
-            p.id = "a" + i;
-            p.innerText = a.text;
-            div.appendChild(p);
-        });
+    let div = document.getElementById("ayetler");
+    div.innerHTML = "";
+
+    ayetData.forEach((a, i) => {
+      let p = document.createElement("div");
+      p.className = "ayet";
+      p.id = "a" + i;
+      p.innerText = (i+1) + ". " + a.text;
+      div.appendChild(p);
     });
-}
 
-let current = 0;
+  });
+}
 
 // BAŞLAT
 function playAudio() {
-    current = 0;
-    playNext();
+
+  let start = document.getElementById("startAyet").value;
+  current = start - 1;
+
+  playNext();
 }
 
-// SONRAKİ AYET
+// AYET AYET OYNAT
 function playNext() {
 
-    if (current >= ayetData.length) return;
+  if (current >= ayetData.length) return;
 
-    let player = document.getElementById("player");
-    player.src = ayetData[current].audio;
+  let player = document.getElementById("player");
 
-    // aktif ayeti sarı yap
-    document.querySelectorAll(".ayet").forEach(e => e.classList.remove("active"));
-    let aktif = document.getElementById("a" + current);
-    if (aktif) aktif.classList.add("active");
+  player.src = ayetData[current].audio;
 
-    player.play();
+  // sarı yap
+  document.querySelectorAll(".ayet").forEach(e => e.classList.remove("active"));
+  let aktif = document.getElementById("a" + current);
+  if (aktif) aktif.classList.add("active");
 
-    player.onended = () => {
-        current++;
-        playNext();
-    };
+  player.play().catch(() => {});
+
+  // BURASI ÖNEMLİ (düzeltme)
+  player.onended = null;
+  player.onended = function() {
+    current++;
+    playNext();
+  };
 }
 
 </script>
