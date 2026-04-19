@@ -1,154 +1,154 @@
 <!DOCTYPE html><html lang="tr">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Kuran Dinle PRO</title><style>
 body{
     background:black;
     color:white;
     text-align:center;
     font-family:Arial;
+    margin:0;
     user-select:none;
+    touch-action:manipulation;
 }
-.ayet{padding:10px;margin:10px;}
-.aktif{background:yellow;color:black;}
-button,select,input{padding:10px;margin:5px;}
-.kalp{cursor:pointer;font-size:18px;}
-</style></head><body><h2>KURAN DİNLE PRO</h2><select id="sure"></select><br>
+
+h1{margin-top:20px;}
+
+select,input,button{
+    padding:10px;
+    margin:5px;
+    font-size:16px;
+}
+
+.ayet{
+    margin:15px;
+    font-size:18px;
+}
+
+.arapca{
+    font-size:22px;
+    direction:rtl;
+}
+
+.aktif{
+    background:yellow;
+    color:black;
+}
+
+.kalp{
+    cursor:pointer;
+    font-size:20px;
+}
+</style></head><body><h1>KURAN DİNLE PRO</h1><select id="sure"></select><br>
+
 Başlangıç ayeti:
 <input type="number" id="baslangic" value="1"><br>
 
-🎧 Hoca:
+Hoca:
 <select id="hoca">
 
 <option value="ar.alafasy">Alafasy</option>
 <option value="ar.husary">Husary</option>
 <option value="ar.minshawi">Minshawi</option>
-</select><br><label><input type="checkbox" id="auto" checked> Otomatik geç</label><br>
+</select><br><label><input type="checkbox" id="otomatik" checked> Otomatik geç</label><br>
 
 <button onclick="yukle()">Yükle</button>
-<button onclick="baslat()">▶ Başlat / ⏸</button>
+<button onclick="baslat()">▶ Başlat</button>
 
 <div id="liste"></div><audio id="player"></audio>
 
 <script>
 
-let sure=1;
-let ayet=1;
-let data=[];
-let playing=false;
+let sureNo = 1;
+let ayetler = [];
+let current = 0;
 
-const player=document.getElementById("player");
+const sureSelect = document.getElementById("sure");
+const player = document.getElementById("player");
 
-// SURE İSİMLERİ
-const sureler=[
+// SURE LİSTESİ
+const sureler = [
 "Al-Faatiha","Al-Baqara","Aal-i-Imraan","An-Nisaa","Al-Maaida",
 "Al-An'aam","Al-A'raaf","Al-Anfaal","At-Tawba","Yunus","Hud","Yusuf"
 ];
 
-let s=document.getElementById("sure");
-sureler.forEach((x,i)=>{
-let o=document.createElement("option");
-o.value=i+1;
-o.text=(i+1)+". "+x;
-s.appendChild(o);
+sureler.forEach((s,i)=>{
+    let opt = document.createElement("option");
+    opt.value = i+1;
+    opt.textContent = (i+1)+". "+s;
+    sureSelect.appendChild(opt);
 });
 
-// YÜKLE
+// VERİ ÇEK
 async function yukle(){
-sure=parseInt(document.getElementById("sure").value);
-ayet=parseInt(document.getElementById("baslangic").value);
+    sureNo = sureSelect.value;
 
-// ARAPÇA (DOĞRU)
-let arapca=await fetch(`https://api.alquran.cloud/v1/surah/${sure}/quran-uthmani`).then(r=>r.json());
+    let ar = await fetch(`https://api.alquran.cloud/v1/surah/${sureNo}`);
+    let tr = await fetch(`https://api.alquran.cloud/v1/surah/${sureNo}/tr.diyanet`);
 
-// TÜRKÇE
-let meal=await fetch(`https://api.alquran.cloud/v1/surah/${sure}/tr.diyanet`).then(r=>r.json());
+    let arData = await ar.json();
+    let trData = await tr.json();
 
-data=arapca.data.ayahs.map((a,i)=>({
-ar:a.text,
-tr:meal.data.ayahs[i].text,
-no:a.numberInSurah
-}));
+    ayetler = arData.data.ayahs.map((a,i)=>({
+        ar:a.text,
+        tr:trData.data.ayahs[i].text,
+        no:a.numberInSurah
+    }));
 
-goster();
+    listeyiYaz();
 }
 
-// GÖSTER
-function goster(){
-let div=document.getElementById("liste");
-div.innerHTML="";
+// EKRANA YAZ
+function listeyiYaz(){
+    let div = document.getElementById("liste");
+    div.innerHTML="";
 
-data.forEach(a=>{
-let key="fav_"+sure+"_"+a.no;
-let fav=localStorage.getItem(key);
-
-let d=document.createElement("div");
-d.className="ayet";
-d.innerHTML=`
-<b>${a.no}. ${a.ar}</b><br>
-<small>${a.tr}</small>
-<span class="kalp" onclick="favToggle(${a.no})">
-${fav?"❤️":"🤍"}
-</span>
-`;
-div.appendChild(d);
-});
+    ayetler.forEach((a,i)=>{
+        div.innerHTML += `
+        <div class="ayet" id="a${i}">
+            <div class="arapca">${a.no}. ${a.ar}</div>
+            <div>${a.tr}</div>
+            <span class="kalp" onclick="fav(${i},this)">🤍</span>
+        </div>`;
+    });
 }
 
 // FAVORİ
-function favToggle(no){
-let key="fav_"+sure+"_"+no;
-if(localStorage.getItem(key)){
-localStorage.removeItem(key);
-}else{
-localStorage.setItem(key,1);
-}
-goster();
+function fav(i,el){
+    el.textContent = el.textContent=="🤍" ? "❤️" : "🤍";
 }
 
 // BAŞLAT
 function baslat(){
-if(!playing){
-playing=true;
-oynat();
-}else{
-player.pause();
-playing=false;
-}
+    current = parseInt(document.getElementById("baslangic").value) - 1;
+    oku();
 }
 
-// OYNAT (DÜZELTİLDİ)
-function oynat(){
+// OKUMA
+function oku(){
 
-// GLOBAL AYET NUMARASI
-let globalAyet = (sure==1) ? ayet : data[ayet-1].no + (sure-1)*1000;
+    if(current >= ayetler.length) return;
 
-// DOĞRU AUDIO
-let url=`https://cdn.islamic.network/quran/audio/128/${document.getElementById("hoca").value}/${globalAyet}.mp3`;
+    document.querySelectorAll(".ayet").forEach(e=>e.classList.remove("aktif"));
+    document.getElementById("a"+current).classList.add("aktif");
 
-player.src=url;
-player.play();
+    let hoca = document.getElementById("hoca").value;
 
-highlight();
+    // DOĞRU AYET NUMARASI
+    let ayetNo = ayetler[current].no.toString().padStart(3,'0');
+    let sureStr = sureNo.toString().padStart(3,'0');
 
-player.onended=()=>{
-if(document.getElementById("auto").checked){
-ayet++;
-if(ayet<=data.length){
-oynat();
-}
-}
-};
-}
+    player.src = `https://cdn.islamic.network/quran/audio/128/${hoca}/${sureStr}${ayetNo}.mp3`;
 
-// AKTİF AYET
-function highlight(){
-let list=document.querySelectorAll(".ayet");
-list.forEach(x=>x.classList.remove("aktif"));
+    player.play();
 
-if(list[ayet-1]){
-list[ayet-1].classList.add("aktif");
-}
+    player.onended = ()=>{
+        if(document.getElementById("otomatik").checked){
+            current++;
+            oku();
+        }
+    };
 }
 
 </script></body>
