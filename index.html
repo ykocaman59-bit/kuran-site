@@ -2,32 +2,20 @@
 <html lang="tr">
 <head>
 <meta charset="UTF-8">
-
-<!-- ZOOM KAPALI -->
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-
-<title>Kuran Dinle PRO</title>
+<title>KURAN DİNLE PRO</title>
 
 <style>
-
 body{
   margin:0;
   font-family:Arial;
   color:white;
   text-align:center;
 
-  /* KURAN GÖRSELİ */
-  background:url("https://upload.wikimedia.org/wikipedia/commons/9/97/Quran_open.jpg") no-repeat center center fixed;
+  background:url("https://images.unsplash.com/photo-1578926375605-eaf7559b1458") no-repeat center center fixed;
   background-size:cover;
-
-  user-select:none;
 }
 
-.overlay{
-  background:rgba(0,0,0,0.75);
-  min-height:100vh;
-  padding:10px;
-}
+h1{margin-top:20px;}
 
 select,input,button{
   padding:10px;
@@ -38,7 +26,7 @@ select,input,button{
 
 .ayet{
   padding:15px;
-  border-bottom:1px solid #444;
+  border-bottom:1px solid #555;
 }
 
 .active{
@@ -46,123 +34,89 @@ select,input,button{
   color:black;
 }
 
-.ar{font-size:26px;}
-.tr{font-size:14px;color:#ccc;}
-.kalp{font-size:20px;cursor:pointer;}
-
-#favBox{
-  display:none;
+.favBox{
   background:black;
   padding:10px;
-  margin-top:10px;
+  margin:10px;
+  border-radius:10px;
 }
-
 </style>
 </head>
 
 <body>
 
-<div class="overlay">
-
 <h1>KURAN DİNLE PRO</h1>
 
-<select id="sure"></select><br>
+<select id="sure">
+  <option value="1">1. Al-Faatiha</option>
+  <option value="2">2. Al-Baqara</option>
+</select><br>
 
-Başlangıç:
-<input type="number" id="start" value="1"><br>
+Başlangıç: <input id="start" value="1"><br>
 
-<label>
-<input type="checkbox" id="auto"> Otomatik geç
-</label><br>
+<label><input type="checkbox" id="auto"> Otomatik geç</label><br>
 
 <button onclick="load()">Yükle</button>
 <button onclick="startPlay()">▶ Başlat</button>
 <button onclick="pausePlay()">⏸ Duraklat</button>
 <button onclick="showFav()">❤️ Favoriler</button>
 
-<div id="favBox"></div>
-<div id="list"></div>
+<div id="favList"></div>
+<div id="ayetler"></div>
 
 <audio id="player"></audio>
 
-</div>
-
 <script>
-
 let data=[], trData=[];
-let sura=1;
 let currentIndex=0;
-let interval=null;
-let isPlaying=false;
+let interval;
+let sura=1;
 
-const player=document.getElementById("player");
+let player=document.getElementById("player");
 
-// SURELER
-fetch("https://api.alquran.cloud/v1/surah")
-.then(r=>r.json())
-.then(d=>{
-  d.data.forEach(s=>{
-    let o=document.createElement("option");
-    o.value=s.number;
-    o.textContent=s.number+". "+s.englishName;
-    sure.appendChild(o);
-  });
-});
-
-// YÜKLE
 function load(){
+  sura=document.getElementById("sure").value;
 
-  sura = document.getElementById("sure").value;
+  fetch("https://api.alquran.cloud/v1/surah/"+sura)
+  .then(r=>r.json())
+  .then(d=>{
+    data=d.data.ayahs;
+    show();
+  });
 
-  Promise.all([
-    fetch(`https://api.alquran.cloud/v1/surah/${sura}`).then(r=>r.json()),
-    fetch(`https://api.alquran.cloud/v1/surah/${sura}/tr.diyanet`).then(r=>r.json())
-  ])
-  .then(([ar,tr])=>{
+  fetch("https://api.alquran.cloud/v1/surah/"+sura+"/tr.diyanet")
+  .then(r=>r.json())
+  .then(d=>{
+    trData=d.data.ayahs;
+  });
 
-    data = ar.data.ayahs;
-    trData = tr.data.ayahs;
+  let no=String(sura).padStart(3,'0');
+  player.src="https://server8.mp3quran.net/afs/"+no+".mp3";
+}
 
-    let list=document.getElementById("list");
-    list.innerHTML="";
+function show(){
+  let box=document.getElementById("ayetler");
+  box.innerHTML="";
 
-    data.forEach((a,x)=>{
-
-      let fav = localStorage.getItem("fav_"+sura+"_"+x);
-
-      let div=document.createElement("div");
-      div.className="ayet";
-      div.id="a"+x;
-
-      div.innerHTML=`
-        <div><b>${x+1}. Ayet</b></div>
-        <div class="ar">${a.text}</div>
-        <div class="tr">${trData[x].text}</div>
-        <div class="kalp" onclick="favToggle(${x})">
-          ${fav?"❤️":"🤍"}
-        </div>
-      `;
-
-      list.appendChild(div);
-    });
-
+  data.forEach((a,i)=>{
+    box.innerHTML+=`
+      <div class="ayet" id="a${i}">
+        <div style="font-size:22px">${a.text}</div>
+        <div style="color:#ccc">${trData[i]?.text || ""}</div>
+        <button onclick="fav(${i})">🤍</button>
+      </div>
+    `;
   });
 }
 
-// BAŞLAT
 function startPlay(){
-
-  if(!isPlaying){
-    let no = String(sura).padStart(3,'0');
-    player.src=`https://server8.mp3quran.net/afs/${no}.mp3`;
-    isPlaying=true;
-  }
-
   player.play();
 
-  // duration yüklendikten sonra hesapla
-  player.onloadedmetadata = ()=>{
-    let perAyah = player.duration / data.length;
+  player.onloadedmetadata=()=>{
+
+    let perAyah=player.duration/data.length;
+
+    currentIndex=document.getElementById("start").value-1;
 
     clearInterval(interval);
 
@@ -178,52 +132,57 @@ function startPlay(){
 
       currentIndex++;
 
-    }, perAyah*1000);
+      if(document.getElementById("auto").checked && currentIndex>=data.length){
+        sura++;
+        document.getElementById("sure").value=sura;
+        load();
+        startPlay();
+      }
+
+    },perAyah*1000);
+
   };
 }
 
-// DURAKLAT (BAŞA DÖNMEZ)
 function pausePlay(){
   player.pause();
   clearInterval(interval);
 }
 
-// FAVORİ
-function favToggle(x){
+function fav(i){
+  let key="fav_"+sura+"_"+i;
 
-  let key="fav_"+sura+"_"+x;
+  localStorage.setItem(key,JSON.stringify({
+    sura:sura,
+    suraName:document.getElementById("sure").selectedOptions[0].text,
+    ayet:i+1,
+    ar:data[i].text,
+    tr:trData[i].text
+  }));
 
-  if(localStorage.getItem(key)){
-    localStorage.removeItem(key);
-  }else{
-    localStorage.setItem(key, JSON.stringify({
-      sura:sura,
-      ayet:x+1,
-      text:trData[x].text
-    }));
-  }
-
-  load();
+  alert("Favoriye eklendi");
 }
 
-// FAVORİ LİSTE
 function showFav(){
-
-  let box=document.getElementById("favBox");
-  box.style.display = box.style.display=="block" ? "none":"block";
-
-  box.innerHTML="<h3>Favori Ayetler</h3>";
+  let box=document.getElementById("favList");
+  box.innerHTML="<h2>❤️ Favori Ayetler</h2>";
 
   for(let i in localStorage){
     if(i.startsWith("fav_")){
-      let d = JSON.parse(localStorage[i]);
+      let d=JSON.parse(localStorage[i]);
 
-      box.innerHTML += `
-        <div style="margin:10px">
-          Sure ${d.sura} - Ayet ${d.ayet}<br>
-          ${d.text}<br>
-          <button onclick="delFav('${i}')">Sil</button>
-        </div>
+      box.innerHTML+=`
+      <div class="favBox">
+
+        <b>${d.suraName}</b><br>
+        Ayet ${d.ayet}<br><br>
+
+        <div style="font-size:20px">${d.ar}</div>
+        <div style="color:#ccc">${d.tr}</div><br>
+
+        <button onclick="delFav('${i}')">❌ Sil</button>
+
+      </div>
       `;
     }
   }
@@ -233,7 +192,6 @@ function delFav(k){
   localStorage.removeItem(k);
   showFav();
 }
-
 </script>
 
 </body>
