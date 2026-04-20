@@ -7,7 +7,12 @@
 
 <style>
 body{
-  background: linear-gradient(to bottom, #000000, #111827);
+  background:
+    linear-gradient(rgba(0,0,0,0.75), rgba(0,0,0,0.95)),
+    url("https://images.unsplash.com/photo-1585032226651-759b368d7246?q=80&w=1200")
+    no-repeat center center fixed;
+
+  background-size: cover;
   color:white;
   text-align:center;
   font-family:Arial;
@@ -25,18 +30,29 @@ select,input,button{
 
 .ayet{
   padding:18px;
-  border-bottom:1px solid #222;
+  border-bottom:1px solid rgba(255,255,255,0.08);
+  backdrop-filter: blur(2px);
 }
 
 .active{
-  background:yellow;
+  background:rgba(255,255,0,0.85);
   color:black;
+  border-radius:10px;
 }
 
-.ar{font-size:26px;}
-.tr{font-size:14px;color:#aaa;}
+.ar{
+  font-size:26px;
+}
 
-.kalp{font-size:22px;cursor:pointer;}
+.tr{
+  font-size:14px;
+  color:#ddd;
+}
+
+.kalp{
+  font-size:22px;
+  cursor:pointer;
+}
 </style>
 </head>
 
@@ -140,7 +156,6 @@ function favToggle(e,x){
 // BAŞLAT
 function startPlay(){
 
-  // ilk başlatma
   if(!isStarted){
     let start = document.getElementById("start").value;
     current = start - 1;
@@ -149,7 +164,6 @@ function startPlay(){
     return;
   }
 
-  // duraklatıldıysa devam et
   p.play();
 }
 
