@@ -3,38 +3,38 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+
 <title>Kuran Dinle PRO</title>
 
 <style>
 body{
-  background: linear-gradient(to bottom, #000000, #111827);
+  margin:0;
   color:white;
   text-align:center;
   font-family:Arial;
-  margin:0;
-  user-select:none;
+
+  /* 🔥 ARKA PLAN */
+  background: url("https://images.unsplash.com/photo-1542810634-71277d95dcbb") no-repeat center;
+  background-size:cover;
 }
 
-h1{
-  margin-top:20px;
+.container{
+  background: rgba(0,0,0,0.85);
+  min-height:100vh;
+  padding:10px;
 }
 
 select,input,button{
-  padding:12px;
+  padding:10px;
   margin:6px;
-  font-size:16px;
-  border-radius:12px;
+  border-radius:10px;
   border:none;
-}
-
-button{
-  cursor:pointer;
+  font-size:16px;
 }
 
 .ayet{
   padding:18px;
-  border-bottom:1px solid #222;
-  transition:0.3s;
+  border-bottom:1px solid #333;
 }
 
 .active{
@@ -48,7 +48,7 @@ button{
 
 .tr{
   font-size:14px;
-  color:#aaa;
+  color:#bbb;
 }
 
 .kalp{
@@ -60,12 +60,14 @@ button{
 
 <body>
 
+<div class="container">
+
 <h1>KURAN DİNLE PRO</h1>
 
 <select id="sure"></select><br>
 
 Başlangıç:
-<input type="number" id="start" value="1" min="1"><br>
+<input type="number" id="start" value="1"><br>
 
 <label>
 <input type="checkbox" id="auto"> Otomatik geç
@@ -74,16 +76,20 @@ Başlangıç:
 <button onclick="load()">Yükle</button>
 <button onclick="startPlay()">▶ Başlat</button>
 <button onclick="pausePlay()">⏸ Duraklat</button>
+<button onclick="showFav()">❤️ Favoriler</button>
 
 <div id="list"></div>
 
 <audio id="p"></audio>
+
+</div>
 
 <script>
 
 let data=[];
 let current=0;
 let sura=1;
+let playing=false;
 
 const p=document.getElementById("p");
 
@@ -137,7 +143,7 @@ function load(){
   });
 }
 
-// FAVORİ (Sesi bozmaz)
+// FAVORİ
 function favToggle(e,x){
   e.stopPropagation();
 
@@ -153,22 +159,57 @@ function favToggle(e,x){
   el.innerHTML = localStorage.getItem(key) ? "❤️" : "🤍";
 }
 
-// BAŞLAT
+// FAVORİ LİSTESİ
+function showFav(){
+
+  let list=document.getElementById("list");
+  list.innerHTML="<h2>❤️ Favori Ayetler</h2>";
+
+  for(let i=1;i<=114;i++){
+    for(let j=0;j<300;j++){
+
+      if(localStorage.getItem("fav_"+i+"_"+j)){
+
+        let div=document.createElement("div");
+        div.className="ayet";
+        div.innerHTML=`
+          Sure ${i} - Ayet ${j+1}
+          <div class="kalp" onclick="removeFav(${i},${j})">❌ Sil</div>
+        `;
+        list.appendChild(div);
+      }
+    }
+  }
+}
+
+// FAVORİ SİL
+function removeFav(s,a){
+  localStorage.removeItem("fav_"+s+"_"+a);
+  showFav();
+}
+
+// BAŞLAT (DEVAM DESTEKLİ)
 function startPlay(){
 
-  let start = document.getElementById("start").value;
-  current = start - 1;
+  if(!playing){
+    let start = document.getElementById("start").value;
+    if(current===0) current = start-1;
+  }
 
+  playing=true;
   playNext();
 }
 
 // DURAKLAT
 function pausePlay(){
+  playing=false;
   p.pause();
 }
 
-// AYET AYET OYNAT
+// AYET AYET
 function playNext(){
+
+  if(!playing) return;
 
   if(current >= data.length){
     nextSurah();
@@ -179,7 +220,7 @@ function playNext(){
 
   document.querySelectorAll(".ayet").forEach(e=>e.classList.remove("active"));
 
-  let aktif = document.getElementById("a"+current);
+  let aktif=document.getElementById("a"+current);
 
   if(aktif){
     aktif.classList.add("active");
@@ -188,7 +229,7 @@ function playNext(){
 
   p.play().catch(()=>{});
 
-  p.onended = ()=>{
+  p.onended=()=>{
     current++;
     playNext();
   };
@@ -203,12 +244,13 @@ function nextSurah(){
 
   if(sura>114) return;
 
-  document.getElementById("sure").value = sura;
+  document.getElementById("sure").value=sura;
+
+  current=0;
 
   load();
 
   setTimeout(()=>{
-    current=0;
     playNext();
   },1000);
 }
