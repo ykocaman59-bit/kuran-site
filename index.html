@@ -2,46 +2,70 @@
 <html lang="tr">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+
 <title>Kuran Dinle PRO</title>
 
 <style>
+
 body{
   margin:0;
+  font-family:Arial;
   color:white;
   text-align:center;
-  font-family:Arial;
-  background: url("https://images.unsplash.com/photo-1585032226651-759b368d7246") no-repeat center center fixed;
+
+  background: url("https://upload.wikimedia.org/wikipedia/commons/2/2c/Quran_Kareem.jpg") no-repeat center center fixed;
   background-size: cover;
 }
-body::before{
-  content:"";
-  position:fixed;
-  width:100%;
-  height:100%;
-  background:rgba(0,0,0,0.7);
-  z-index:-1;
+
+.overlay{
+  background: rgba(0,0,0,0.75);
+  min-height:100vh;
+  padding:20px;
 }
 
-.ayet{padding:15px;border-bottom:1px solid #333;}
-.ar{font-size:26px;}
-.tr{font-size:14px;color:#ccc;}
-.active{background:yellow;color:black;}
-.kalp{font-size:20px;cursor:pointer;}
-
-button,input,select{
-  padding:10px;margin:5px;border-radius:10px;border:none;
-}
-
-#favBox{
-  display:none;
-  background:black;
+select,input,button{
   padding:10px;
+  margin:6px;
+  border-radius:10px;
+  border:none;
+  font-size:16px;
 }
+
+button{
+  cursor:pointer;
+}
+
+.ayet{
+  padding:15px;
+  border-bottom:1px solid #333;
+}
+
+.ar{
+  font-size:26px;
+}
+
+.tr{
+  font-size:14px;
+  color:#ccc;
+}
+
+.active{
+  background:yellow;
+  color:black;
+}
+
+.kalp{
+  font-size:20px;
+  cursor:pointer;
+}
+
 </style>
 </head>
 
 <body>
+
+<div class="overlay">
 
 <h1>KURAN DİNLE PRO</h1>
 
@@ -50,24 +74,25 @@ button,input,select{
 Başlangıç:
 <input type="number" id="start" value="1"><br>
 
-<label><input type="checkbox" id="auto"> Otomatik geç</label><br>
+<label>
+<input type="checkbox" id="auto"> Otomatik geç
+</label><br>
 
 <button onclick="load()">Yükle</button>
 <button onclick="startPlay()">▶ Başlat</button>
 <button onclick="pausePlay()">⏸ Duraklat</button>
-<button onclick="showFav()">❤️ Favoriler</button>
 
 <div id="list"></div>
-<div id="favBox"></div>
 
 <audio id="p"></audio>
+
+</div>
 
 <script>
 
 let data=[];
 let current=0;
 let sura=1;
-let suraName="";
 
 const p=document.getElementById("p");
 
@@ -86,34 +111,31 @@ fetch("https://api.alquran.cloud/v1/surah")
 // YÜKLE
 function load(){
 
-  let select=document.getElementById("sure");
-  sura = select.value;
-  suraName = select.options[select.selectedIndex].text;
+  sura = document.getElementById("sure").value;
 
   Promise.all([
-    fetch(`https://api.alquran.cloud/v1/surah/${sura}`).then(r=>r.json()),
+    fetch(`https://api.alquran.cloud/v1/surah/${sura}/ar.alafasy`).then(r=>r.json()),
     fetch(`https://api.alquran.cloud/v1/surah/${sura}/tr.diyanet`).then(r=>r.json())
   ])
   .then(([ar,tr])=>{
 
     data = ar.data.ayahs;
 
-    let list=document.getElementById("list");
+    let list = document.getElementById("list");
     list.innerHTML="";
 
-    data.forEach((a,i)=>{
+    data.forEach((a,x)=>{
 
-      let key="fav_"+sura+"_"+i;
-      let fav = localStorage.getItem(key)!=null;
+      let fav = localStorage.getItem("fav_"+sura+"_"+x)=="1";
 
       let div=document.createElement("div");
       div.className="ayet";
-      div.id="a"+i;
+      div.id="a"+x;
 
       div.innerHTML=`
         <div class="ar">${a.text}</div>
-        <div class="tr">${tr.data.ayahs[i].text}</div>
-        <div class="kalp" onclick="favToggle(event,${i})">
+        <div class="tr">${tr.data.ayahs[x].text}</div>
+        <div class="kalp" onclick="favToggle(event,${x})">
           ${fav?"❤️":"🤍"}
         </div>
       `;
@@ -124,70 +146,28 @@ function load(){
   });
 }
 
-// FAVORİ (DETAYLI KAYIT)
-function favToggle(e,i){
+// FAVORİ
+function favToggle(e,x){
   e.stopPropagation();
 
-  let key="fav_"+sura+"_"+i;
+  let key="fav_"+sura+"_"+x;
 
   if(localStorage.getItem(key)){
     localStorage.removeItem(key);
   }else{
-
-    let ayet = data[i].text;
-
-    let obj = {
-      sura:sura,
-      suraName:suraName,
-      ayetNo:i+1,
-      text:ayet
-    };
-
-    localStorage.setItem(key, JSON.stringify(obj));
+    localStorage.setItem(key,"1");
   }
 
-  let el=document.getElementById("a"+i).querySelector(".kalp");
+  let el=document.getElementById("a"+x).querySelector(".kalp");
   el.innerHTML = localStorage.getItem(key) ? "❤️" : "🤍";
-}
-
-// FAVORİ LİSTE (GÜZEL GÖSTERİM)
-function showFav(){
-
-  let box=document.getElementById("favBox");
-
-  if(box.style.display=="block"){
-    box.style.display="none";
-    return;
-  }
-
-  box.style.display="block";
-  box.innerHTML="<h2>Favori Ayetler</h2>";
-
-  for(let key in localStorage){
-
-    if(key.startsWith("fav_")){
-
-      let val=localStorage.getItem(key);
-
-      try{
-        let obj=JSON.parse(val);
-
-        box.innerHTML += `
-          <div style="margin:10px;padding:10px;border-bottom:1px solid #444">
-            <b>${obj.suraName}</b><br>
-            Ayet ${obj.ayetNo}<br>
-            ${obj.text}
-          </div>
-        `;
-
-      }catch{}
-    }
-  }
 }
 
 // BAŞLAT
 function startPlay(){
-  current = document.getElementById("start").value -1;
+
+  let start = document.getElementById("start").value;
+  current = start - 1;
+
   playNext();
 }
 
@@ -196,24 +176,25 @@ function pausePlay(){
   p.pause();
 }
 
-// AYET AYET
+// AYET AYET OYNAT
 function playNext(){
 
-  if(current>=data.length){
+  if(current >= data.length){
     nextSurah();
     return;
   }
 
   p.src = data[current].audio;
+  p.load();
 
   document.querySelectorAll(".ayet").forEach(e=>e.classList.remove("active"));
 
-  let aktif=document.getElementById("a"+current);
+  let aktif = document.getElementById("a"+current);
   if(aktif) aktif.classList.add("active");
 
   if(aktif) aktif.scrollIntoView({behavior:"smooth",block:"center"});
 
-  p.play();
+  p.play().catch(()=>{});
 
   p.onended = ()=>{
     current++;
@@ -230,7 +211,7 @@ function nextSurah(){
 
   if(sura>114) return;
 
-  document.getElementById("sure").value=sura;
+  document.getElementById("sure").value = sura;
 
   load();
 
