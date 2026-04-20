@@ -2,221 +2,215 @@
 <html lang="tr">
 <head>
 <meta charset="UTF-8">
-<title>KURAN DİNLE PRO</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+
+<title>Kuran Dinle PRO</title>
 
 <style>
 body{
   margin:0;
-  font-family:Arial;
-  background:#111;
   color:white;
   text-align:center;
+  font-family:Arial;
+
+  /* ARKA PLAN GÖRSEL */
+  background:url("https://images.unsplash.com/photo-1584551246679-0daf3d275d0f") no-repeat center;
+  background-size:cover;
 }
 
-/* sade koyu arka plan */
-.container{
-  background:rgba(0,0,0,0.7);
+.overlay{
+  background:rgba(0,0,0,0.85);
   min-height:100vh;
-  padding:20px;
+  padding-bottom:40px;
 }
 
-h1{margin:10px;}
+h1{padding-top:20px;}
 
 select,input,button{
-  padding:10px;
-  margin:5px;
-  border-radius:10px;
+  padding:12px;
+  margin:6px;
+  font-size:16px;
+  border-radius:12px;
   border:none;
 }
 
-/* ayet */
 .ayet{
-  padding:15px;
+  padding:18px;
   border-bottom:1px solid #333;
 }
 
-/* sarı takip */
 .active{
   background:yellow;
   color:black;
 }
 
-/* kalp */
-.heart{
-  font-size:20px;
-  cursor:pointer;
-}
+.ar{font-size:26px;}
+.tr{font-size:14px;color:#ccc;}
 
-/* favori kutu */
-.favBox{
-  background:black;
-  margin:10px;
-  padding:10px;
-  border-radius:10px;
-}
+.kalp{font-size:22px;cursor:pointer;}
 </style>
 </head>
 
 <body>
-
-<div class="container">
+<div class="overlay">
 
 <h1>KURAN DİNLE PRO</h1>
 
-<select id="sure">
-  <option value="1">1. Fatiha</option>
-  <option value="2">2. Bakara</option>
-</select><br>
+<select id="sure"></select><br>
 
-Başlangıç: <input id="start" value="1"><br>
+Başlangıç:
+<input type="number" id="start" value="1"><br>
 
-<label><input type="checkbox" id="auto"> Otomatik geç</label><br>
+<label>
+<input type="checkbox" id="auto"> Otomatik geç
+</label><br>
 
 <button onclick="load()">Yükle</button>
 <button onclick="startPlay()">▶ Başlat</button>
 <button onclick="pausePlay()">⏸ Duraklat</button>
-<button onclick="showFav()">❤️ Favoriler</button>
 
-<div id="favList"></div>
-<div id="ayetler"></div>
+<div id="list"></div>
 
-<audio id="player"></audio>
+<audio id="p"></audio>
 
 </div>
 
 <script>
-let data=[], trData=[];
-let currentIndex=0;
-let interval;
+
+let dataAR=[];
+let dataTR=[];
+let current=0;
 let sura=1;
 
-let player=document.getElementById("player");
+const p=document.getElementById("p");
 
-/* yükle */
+// SURELER (114 TAM)
+fetch("https://api.alquran.cloud/v1/surah")
+.then(r=>r.json())
+.then(d=>{
+  d.data.forEach(s=>{
+    let o=document.createElement("option");
+    o.value=s.number;
+    o.textContent=s.number+". "+s.englishName;
+    sure.appendChild(o);
+  });
+});
+
+// YÜKLE (AR + TR AYRI AYRI)
 function load(){
-  sura=document.getElementById("sure").value;
 
-  fetch("https://api.alquran.cloud/v1/surah/"+sura)
-  .then(r=>r.json())
-  .then(d=>{
-    data=d.data.ayahs;
-    show();
-  });
+  sura = document.getElementById("sure").value;
 
-  fetch("https://api.alquran.cloud/v1/surah/"+sura+"/tr.diyanet")
-  .then(r=>r.json())
-  .then(d=>{
-    trData=d.data.ayahs;
-  });
+  Promise.all([
+    fetch(`https://api.alquran.cloud/v1/surah/${sura}/ar.alafasy`).then(r=>r.json()),
+    fetch(`https://api.alquran.cloud/v1/surah/${sura}/tr.diyanet`).then(r=>r.json())
+  ])
+  .then(([ar,tr])=>{
 
-  let no=String(sura).padStart(3,'0');
-  player.src="https://server8.mp3quran.net/afs/"+no+".mp3";
-}
+    dataAR = ar.data.ayahs;
+    dataTR = tr.data.ayahs;
 
-/* ayetleri göster */
-function show(){
-  let box=document.getElementById("ayetler");
-  box.innerHTML="";
+    let list=document.getElementById("list");
+    list.innerHTML="";
 
-  data.forEach((a,i)=>{
+    dataAR.forEach((a,x)=>{
 
-    let key="fav_"+sura+"_"+i;
-    let saved=localStorage.getItem(key);
+      let fav = localStorage.getItem("fav_"+sura+"_"+x)=="1";
 
-    let heart = saved ? "❤️" : "🤍";
+      let div=document.createElement("div");
+      div.className="ayet";
+      div.id="a"+x;
 
-    box.innerHTML+=`
-      <div class="ayet" id="a${i}">
-        <div style="font-size:22px">${a.text}</div>
-        <div style="color:#ccc">${trData[i]?.text || ""}</div>
-        <span class="heart" onclick="fav(${i})" id="h${i}">${heart}</span>
-      </div>
-    `;
+      div.innerHTML=`
+        <div class="ar">${a.text}</div>
+        <div class="tr">${dataTR[x] ? dataTR[x].text : ""}</div>
+        <div class="kalp" onclick="favToggle(event,${x})">
+          ${fav?"❤️":"🤍"}
+        </div>
+      `;
+
+      list.appendChild(div);
+    });
+
   });
 }
 
-/* başlat */
-function startPlay(){
-  player.play();
+// FAVORİ (ASLA BOZMAZ)
+function favToggle(e,x){
+  e.stopPropagation();
 
-  player.onloadedmetadata=()=>{
-
-    let perAyah=player.duration/data.length;
-
-    clearInterval(interval);
-
-    interval=setInterval(()=>{
-
-      document.querySelectorAll(".ayet").forEach(e=>e.classList.remove("active"));
-
-      let el=document.getElementById("a"+currentIndex);
-      if(el){
-        el.classList.add("active");
-        el.scrollIntoView({behavior:"smooth",block:"center"});
-      }
-
-      currentIndex++;
-
-    },perAyah*1000);
-  };
-}
-
-/* duraklat */
-function pausePlay(){
-  player.pause();
-  clearInterval(interval);
-}
-
-/* favori ekle */
-function fav(i){
-
-  let key="fav_"+sura+"_"+i;
+  let key="fav_"+sura+"_"+x;
 
   if(localStorage.getItem(key)){
     localStorage.removeItem(key);
   }else{
-    localStorage.setItem(key,JSON.stringify({
-      sura:sura,
-      suraName:document.getElementById("sure").selectedOptions[0].text,
-      ayet:i+1,
-      ar:data[i].text,
-      tr:trData[i].text
-    }));
+    localStorage.setItem(key,"1");
   }
 
-  show(); // kalp güncelle
+  let el=document.getElementById("a"+x).querySelector(".kalp");
+  el.innerHTML = localStorage.getItem(key) ? "❤️" : "🤍";
 }
 
-/* favori liste */
-function showFav(){
-  let box=document.getElementById("favList");
-  box.innerHTML="<h2>❤️ Favori Ayetler</h2>";
+// BAŞLAT
+function startPlay(){
 
-  for(let i in localStorage){
-    if(i.startsWith("fav_")){
-      let d=JSON.parse(localStorage[i]);
+  let start = document.getElementById("start").value;
+  current = start - 1;
 
-      box.innerHTML+=`
-      <div class="favBox">
+  playNext();
+}
 
-        <b>${d.suraName}</b><br>
-        Ayet ${d.ayet}<br><br>
+// DURAKLAT
+function pausePlay(){
+  p.pause();
+}
 
-        <div>${d.ar}</div>
-        <div style="color:#ccc">${d.tr}</div><br>
+// AYET AYET OYNAT
+function playNext(){
 
-        <button onclick="delFav('${i}')">❌ Sil</button>
-
-      </div>
-      `;
-    }
+  if(current >= dataAR.length){
+    nextSurah();
+    return;
   }
+
+  p.src = dataAR[current].audio;
+
+  document.querySelectorAll(".ayet").forEach(e=>e.classList.remove("active"));
+
+  let aktif=document.getElementById("a"+current);
+
+  if(aktif){
+    aktif.classList.add("active");
+    aktif.scrollIntoView({behavior:"smooth",block:"center"});
+  }
+
+  p.play().catch(()=>{});
+
+  p.onended = ()=>{
+    current++;
+    playNext();
+  };
 }
 
-function delFav(k){
-  localStorage.removeItem(k);
-  showFav();
+// SONRAKİ SURE
+function nextSurah(){
+
+  if(!document.getElementById("auto").checked) return;
+
+  sura++;
+
+  if(sura>114) return;
+
+  document.getElementById("sure").value = sura;
+
+  load();
+
+  setTimeout(()=>{
+    current=0;
+    playNext();
+  },1000);
 }
+
 </script>
 
 </body>
