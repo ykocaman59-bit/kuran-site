@@ -12,13 +12,12 @@ body{
   color:white;
   text-align:center;
 
-  /* ✅ DÜZGÜN KURAN ARKA PLAN */
-  background:url("https://images.unsplash.com/photo-1584286595398-a96c57c3c0a9") no-repeat center center fixed;
+  background:url("https://cdn.pixabay.com/photo/2017/08/06/22/01/quran-2599443_1280.jpg") no-repeat center center fixed;
   background-size:cover;
 }
 
 .overlay{
-  background:rgba(0,0,0,0.7);
+  background:rgba(0,0,0,0.75);
   min-height:100vh;
   padding:10px;
 }
@@ -28,7 +27,6 @@ select,input,button{
   margin:5px;
   border-radius:10px;
   border:none;
-  font-size:16px;
 }
 
 .ayet{
@@ -44,14 +42,11 @@ select,input,button{
 .ar{font-size:26px;}
 .tr{font-size:14px;color:#ccc;}
 
-.kalp{
-  font-size:22px;
-  cursor:pointer;
-}
+.kalp{font-size:22px;cursor:pointer;}
 
 #favBox{
   display:none;
-  background:rgba(0,0,0,0.9);
+  background:black;
   padding:15px;
   margin-top:10px;
 }
@@ -79,7 +74,6 @@ Başlangıç:
 <button onclick="showFav()">❤️ Favoriler</button>
 
 <div id="favBox"></div>
-
 <div id="list"></div>
 
 <audio id="player"></audio>
@@ -88,8 +82,7 @@ Başlangıç:
 
 <script>
 
-let data=[];
-let trData=[];
+let data=[], trData=[], sureName="";
 let current=0;
 let sura=1;
 
@@ -120,6 +113,7 @@ function load(){
 
     data = ar.data.ayahs;
     trData = tr.data.ayahs;
+    sureName = ar.data.englishName;
 
     let list = document.getElementById("list");
     list.innerHTML="";
@@ -133,6 +127,7 @@ function load(){
       div.id="a"+x;
 
       div.innerHTML=`
+        <div><b>${x+1}. Ayet</b></div>
         <div class="ar">${a.text}</div>
         <div class="tr">${trData[x].text}</div>
         <div class="kalp" onclick="favToggle(${x})">
@@ -146,7 +141,7 @@ function load(){
   });
 }
 
-// FAVORİ EKLE
+// FAVORİ
 function favToggle(x){
 
   let key="fav_"+sura+"_"+x;
@@ -156,6 +151,7 @@ function favToggle(x){
   }else{
     localStorage.setItem(key, JSON.stringify({
       sura:sura,
+      sureName:sureName,
       ayet:x+1,
       text:trData[x].text
     }));
@@ -164,11 +160,10 @@ function favToggle(x){
   load();
 }
 
-// FAVORİ LİSTE (İSTEDİĞİN FORMAT)
+// FAVORİ LİSTE
 function showFav(){
 
   let box=document.getElementById("favBox");
-
   box.style.display = box.style.display=="block" ? "none":"block";
 
   box.innerHTML="<h2>❤️ Favori Ayetler</h2>";
@@ -181,7 +176,7 @@ function showFav(){
 
       box.innerHTML += `
         <div style="margin:10px;border-bottom:1px solid #444;">
-          <b>Sure ${d.sura} - Ayet ${d.ayet}</b><br>
+          <b>Sure ${d.sura} ${d.sureName} - Ayet ${d.ayet}</b><br>
           ${d.text}<br>
           <button onclick="removeFav('${i}')">❌ Sil</button>
         </div>
@@ -195,18 +190,16 @@ function removeFav(k){
   showFav();
 }
 
-// SES BAŞLAT
+// BAŞLAT
 function startPlay(){
 
   let no = String(sura).padStart(3,'0');
-
   player.src = `https://server8.mp3quran.net/afs/${no}.mp3`;
-
   player.play();
 
   current = document.getElementById("start").value - 1;
 
-  highlight();
+  trackByAudio();
 }
 
 // DURAKLAT
@@ -214,20 +207,26 @@ function pausePlay(){
   player.pause();
 }
 
-// SARI TAKİP
-function highlight(){
+// SES SÜRESİNE GÖRE TAKİP (DÜZELTİLDİ)
+function trackByAudio(){
 
-  document.querySelectorAll(".ayet").forEach(e=>e.classList.remove("active"));
+  let total = data.length;
 
-  let el=document.getElementById("a"+current);
-  if(el) el.classList.add("active");
+  let interval = setInterval(()=>{
 
-  setTimeout(()=>{
-    current++;
-    if(current<data.length){
-      highlight();
-    }
-  },3000);
+    if(player.paused) return;
+
+    let percent = player.currentTime / player.duration;
+
+    current = Math.floor(percent * total);
+
+    document.querySelectorAll(".ayet").forEach(e=>e.classList.remove("active"));
+
+    let el=document.getElementById("a"+current);
+    if(el) el.classList.add("active");
+
+  },500);
+
 }
 
 </script>
