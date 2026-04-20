@@ -15,6 +15,10 @@ body{
   user-select:none;
 }
 
+h1{
+  margin-top:20px;
+}
+
 select,input,button{
   padding:12px;
   margin:6px;
@@ -23,9 +27,14 @@ select,input,button{
   border:none;
 }
 
+button{
+  cursor:pointer;
+}
+
 .ayet{
   padding:18px;
   border-bottom:1px solid #222;
+  transition:0.3s;
 }
 
 .active{
@@ -33,10 +42,19 @@ select,input,button{
   color:black;
 }
 
-.ar{font-size:26px;}
-.tr{font-size:14px;color:#aaa;}
+.ar{
+  font-size:26px;
+}
 
-.kalp{font-size:22px;cursor:pointer;}
+.tr{
+  font-size:14px;
+  color:#aaa;
+}
+
+.kalp{
+  font-size:22px;
+  cursor:pointer;
+}
 </style>
 </head>
 
@@ -47,7 +65,7 @@ select,input,button{
 <select id="sure"></select><br>
 
 Başlangıç:
-<input type="number" id="start" value="1"><br>
+<input type="number" id="start" value="1" min="1"><br>
 
 <label>
 <input type="checkbox" id="auto"> Otomatik geç
@@ -119,7 +137,7 @@ function load(){
   });
 }
 
-// FAVORİ
+// FAVORİ (Sesi bozmaz)
 function favToggle(e,x){
   e.stopPropagation();
 
@@ -135,7 +153,7 @@ function favToggle(e,x){
   el.innerHTML = localStorage.getItem(key) ? "❤️" : "🤍";
 }
 
-// ▶️ BAŞLAT
+// BAŞLAT
 function startPlay(){
 
   let start = document.getElementById("start").value;
@@ -144,12 +162,12 @@ function startPlay(){
   playNext();
 }
 
-// ⏸ DURAKLAT
+// DURAKLAT
 function pausePlay(){
   p.pause();
 }
 
-// ▶️ AYET AYET
+// AYET AYET OYNAT
 function playNext(){
 
   if(current >= data.length){
@@ -176,7 +194,7 @@ function playNext(){
   };
 }
 
-// 🔁 SONRAKİ SURE
+// SONRAKİ SURE
 function nextSurah(){
 
   if(!document.getElementById("auto").checked) return;
@@ -194,36 +212,6 @@ function nextSurah(){
     playNext();
   },1000);
 }
-
-// 💾 KAYDET
-p.ontimeupdate = () => {
-  localStorage.setItem("kuran", JSON.stringify({
-    sura: sura,
-    ayet: current
-  }));
-};
-
-// 🔄 GERİ YÜKLE
-window.onload = () => {
-
-  let k = JSON.parse(localStorage.getItem("kuran"));
-
-  if(k){
-
-    sura = k.sura;
-    current = k.ayet;
-
-    document.getElementById("sure").value = sura;
-
-    load();
-
-    setTimeout(()=>{
-      playNext();
-    },1000);
-
-  }
-
-};
 
 </script>
 
