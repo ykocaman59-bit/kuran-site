@@ -2,26 +2,25 @@
 <html lang="tr">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <title>Kuran Dinle PRO</title>
 
 <style>
-
 body{
   margin:0;
   font-family:Arial;
   color:white;
   text-align:center;
 
-  background: url("https://upload.wikimedia.org/wikipedia/commons/2/2c/Quran_Kareem.jpg") no-repeat center center fixed;
+  background: url("https://upload.wikimedia.org/wikipedia/commons/thumb/7/7b/Quran.jpg/800px-Quran.jpg") no-repeat center center fixed;
   background-size: cover;
 }
 
 .overlay{
   background: rgba(0,0,0,0.75);
   min-height:100vh;
-  padding:20px;
+  padding:15px;
 }
 
 select,input,button{
@@ -29,11 +28,6 @@ select,input,button{
   margin:6px;
   border-radius:10px;
   border:none;
-  font-size:16px;
-}
-
-button{
-  cursor:pointer;
 }
 
 .ayet{
@@ -41,30 +35,26 @@ button{
   border-bottom:1px solid #333;
 }
 
-.ar{
-  font-size:26px;
-}
-
-.tr{
-  font-size:14px;
-  color:#ccc;
-}
+.ar{font-size:24px;}
+.tr{font-size:14px;color:#ccc;}
 
 .active{
   background:yellow;
   color:black;
 }
 
-.kalp{
-  font-size:20px;
-  cursor:pointer;
-}
+.kalp{font-size:20px;cursor:pointer;}
 
+.favBox{
+  background:#222;
+  padding:10px;
+  margin:10px;
+  border-radius:10px;
+}
 </style>
 </head>
 
 <body>
-
 <div class="overlay">
 
 <h1>KURAN DİNLE PRO</h1>
@@ -81,8 +71,10 @@ Başlangıç:
 <button onclick="load()">Yükle</button>
 <button onclick="startPlay()">▶ Başlat</button>
 <button onclick="pausePlay()">⏸ Duraklat</button>
+<button onclick="showFav()">❤️ Favoriler</button>
 
 <div id="list"></div>
+<div id="favList"></div>
 
 <audio id="p"></audio>
 
@@ -91,6 +83,7 @@ Başlangıç:
 <script>
 
 let data=[];
+let trData=[];
 let current=0;
 let sura=1;
 
@@ -120,9 +113,11 @@ function load(){
   .then(([ar,tr])=>{
 
     data = ar.data.ayahs;
+    trData = tr.data.ayahs;
 
-    let list = document.getElementById("list");
+    let list=document.getElementById("list");
     list.innerHTML="";
+    document.getElementById("favList").innerHTML="";
 
     data.forEach((a,x)=>{
 
@@ -134,7 +129,7 @@ function load(){
 
       div.innerHTML=`
         <div class="ar">${a.text}</div>
-        <div class="tr">${tr.data.ayahs[x].text}</div>
+        <div class="tr">${trData[x].text}</div>
         <div class="kalp" onclick="favToggle(event,${x})">
           ${fav?"❤️":"🤍"}
         </div>
@@ -146,7 +141,7 @@ function load(){
   });
 }
 
-// FAVORİ
+// FAVORİ EKLE
 function favToggle(e,x){
   e.stopPropagation();
 
@@ -162,8 +157,59 @@ function favToggle(e,x){
   el.innerHTML = localStorage.getItem(key) ? "❤️" : "🤍";
 }
 
+// FAVORİLERİ GÖSTER
+function showFav(){
+
+  let favList=document.getElementById("favList");
+  favList.innerHTML="<h3>Favori Ayetler</h3>";
+
+  for(let i=1;i<=114;i++){
+    for(let j=0;j<300;j++){
+
+      let key="fav_"+i+"_"+j;
+
+      if(localStorage.getItem(key)){
+
+        fetch(`https://api.alquran.cloud/v1/surah/${i}/tr.diyanet`)
+        .then(r=>r.json())
+        .then(d=>{
+
+          let ayet = d.data.ayahs[j];
+
+          if(!ayet) return;
+
+          let div=document.createElement("div");
+          div.className="favBox";
+
+          div.innerHTML=`
+          <b>${i}. Sure (${d.data.englishName}) - Ayet ${j+1}</b><br>
+          ${ayet.text}<br>
+          <button onclick="removeFav(${i},${j})">Sil</button>
+          `;
+
+          favList.appendChild(div);
+
+        });
+
+      }
+
+    }
+  }
+}
+
+// FAVORİ SİL
+function removeFav(s,a){
+  localStorage.removeItem("fav_"+s+"_"+a);
+  showFav();
+}
+
 // BAŞLAT
 function startPlay(){
+
+  if(p.paused && p.currentTime>0){
+    p.play();
+    return;
+  }
 
   let start = document.getElementById("start").value;
   current = start - 1;
@@ -176,10 +222,10 @@ function pausePlay(){
   p.pause();
 }
 
-// AYET AYET OYNAT
+// AYET OYNAT
 function playNext(){
 
-  if(current >= data.length){
+  if(current>=data.length){
     nextSurah();
     return;
   }
@@ -189,12 +235,12 @@ function playNext(){
 
   document.querySelectorAll(".ayet").forEach(e=>e.classList.remove("active"));
 
-  let aktif = document.getElementById("a"+current);
+  let aktif=document.getElementById("a"+current);
   if(aktif) aktif.classList.add("active");
 
   if(aktif) aktif.scrollIntoView({behavior:"smooth",block:"center"});
 
-  p.play().catch(()=>{});
+  p.play();
 
   p.onended = ()=>{
     current++;
@@ -211,7 +257,7 @@ function nextSurah(){
 
   if(sura>114) return;
 
-  document.getElementById("sure").value = sura;
+  document.getElementById("sure").value=sura;
 
   load();
 
@@ -222,6 +268,5 @@ function nextSurah(){
 }
 
 </script>
-
 </body>
 </html>
