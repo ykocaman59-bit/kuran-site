@@ -45,9 +45,7 @@ select,input,button{
 
 .kalp{font-size:22px;cursor:pointer;}
 
-#favPage{
-  display:none;
-}
+#favPage{display:none;}
 </style>
 </head>
 
@@ -109,7 +107,7 @@ fetch("https://api.alquran.cloud/v1/surah")
   });
 });
 
-// SAYFA GEÇİŞ
+// SAYFA
 function showFav(){
   document.getElementById("mainPage").style.display="none";
   document.getElementById("favPage").style.display="block";
@@ -149,7 +147,7 @@ function load(){
       div.innerHTML=`
         <div class="ar">${a.text}</div>
         <div class="tr">${dataTR[x].text}</div>
-        <div class="kalp" onclick="favToggle(event,${x})">
+        <div class="kalp" id="kalp_${sura}_${x}" onclick="favToggle(event,${x})">
           ${fav?"❤️":"🤍"}
         </div>
       `;
@@ -160,7 +158,7 @@ function load(){
   });
 }
 
-// FAVORİ EKLE / ÇIKAR
+// FAVORİ EKLE
 function favToggle(e,x){
   e.stopPropagation();
 
@@ -172,28 +170,53 @@ function favToggle(e,x){
     localStorage.setItem(key,"1");
   }
 
-  let el=document.getElementById("a"+x).querySelector(".kalp");
-  el.innerHTML = localStorage.getItem(key) ? "❤️" : "🤍";
+  updateKalp(sura,x);
 }
 
-// FAVORİ LİSTESİ
-function loadFav(){
+// KALP GÜNCELLE
+function updateKalp(s,a){
+  let el=document.getElementById("kalp_"+s+"_"+a);
+  if(el){
+    el.innerHTML = localStorage.getItem("fav_"+s+"_"+a) ? "❤️" : "🤍";
+  }
+}
+
+// FAVORİ LİSTESİ (ARTIK AYET METNİ VAR)
+async function loadFav(){
 
   let favList=document.getElementById("favList");
   favList.innerHTML="";
 
   for(let i=1;i<=114;i++){
+
+    let found=false;
+
     for(let j=0;j<300;j++){
+      if(localStorage.getItem("fav_"+i+"_"+j)){
+        found=true;
+        break;
+      }
+    }
 
-      let key="fav_"+i+"_"+j;
+    if(!found) continue;
 
-      if(localStorage.getItem(key)){
+    // API çek
+    let [ar,tr] = await Promise.all([
+      fetch(`https://api.alquran.cloud/v1/surah/${i}/ar.alafasy`).then(r=>r.json()),
+      fetch(`https://api.alquran.cloud/v1/surah/${i}/tr.diyanet`).then(r=>r.json())
+    ]);
+
+    for(let j=0;j<ar.data.ayahs.length;j++){
+
+      if(localStorage.getItem("fav_"+i+"_"+j)){
 
         let div=document.createElement("div");
         div.className="ayet";
 
         div.innerHTML=`
           <b>Sure ${i} - Ayet ${j+1}</b><br>
+          <div class="ar">${ar.data.ayahs[j].text}</div>
+          <div class="tr">${tr.data.ayahs[j].text}</div>
           <button onclick="removeFav(${i},${j})">❌ Kaldır</button>
         `;
 
@@ -203,9 +226,10 @@ function loadFav(){
   }
 }
 
-// FAVORİDEN KALDIR
+// FAVORİDEN SİL (ANINDA GÜNCEL)
 function removeFav(s,a){
   localStorage.removeItem("fav_"+s+"_"+a);
+  updateKalp(s,a); // ANA EKRAN DA GÜNCELLENİR
   loadFav();
 }
 
@@ -230,7 +254,7 @@ function pausePlay(){
   p.pause();
 }
 
-// AYET AYET
+// AYET AYET OKUMA
 function playNext(){
 
   if(current >= dataAR.length){
