@@ -7,23 +7,24 @@
 
 <style>
 body{
-  margin:0;
-  font-family:Arial;
-  background:#000;
+  background: linear-gradient(to bottom, #000000, #111827);
   color:white;
   text-align:center;
+  font-family:Arial;
+  margin:0;
+  user-select:none;
 }
 
 select,input,button{
-  padding:10px;
+  padding:12px;
   margin:6px;
-  border-radius:10px;
-  border:none;
   font-size:16px;
+  border-radius:12px;
+  border:none;
 }
 
 .ayet{
-  padding:15px;
+  padding:18px;
   border-bottom:1px solid #222;
 }
 
@@ -35,7 +36,7 @@ select,input,button{
 .ar{font-size:26px;}
 .tr{font-size:14px;color:#aaa;}
 
-.kalp{font-size:20px;cursor:pointer;}
+.kalp{font-size:22px;cursor:pointer;}
 </style>
 </head>
 
@@ -46,7 +47,7 @@ select,input,button{
 <select id="sure"></select><br>
 
 Başlangıç:
-<input type="number" id="start" value="1"><br>
+<input type="number" id="start" value="1" min="1"><br>
 
 <label>
 <input type="checkbox" id="auto"> Otomatik geç
@@ -63,10 +64,9 @@ Başlangıç:
 <script>
 
 let data=[];
-let sura=1;
 let current=0;
-let isPlaying=false;
-let started=false;
+let sura=1;
+let isStarted=false;
 
 const p=document.getElementById("p");
 
@@ -87,11 +87,13 @@ function load(){
 
   sura = document.getElementById("sure").value;
 
-  fetch(`https://api.alquran.cloud/v1/surah/${sura}/ar.alafasy`)
-  .then(r=>r.json())
-  .then(d=>{
+  Promise.all([
+    fetch(`https://api.alquran.cloud/v1/surah/${sura}/ar.alafasy`).then(r=>r.json()),
+    fetch(`https://api.alquran.cloud/v1/surah/${sura}/tr.diyanet`).then(r=>r.json())
+  ])
+  .then(([ar,tr])=>{
 
-    data = d.data.ayahs;
+    data = ar.data.ayahs;
 
     let list=document.getElementById("list");
     list.innerHTML="";
@@ -106,6 +108,7 @@ function load(){
 
       div.innerHTML=`
         <div class="ar">${a.text}</div>
+        <div class="tr">${tr.data.ayahs[x].text}</div>
         <div class="kalp" onclick="favToggle(event,${x})">
           ${fav?"❤️":"🤍"}
         </div>
@@ -114,15 +117,13 @@ function load(){
       list.appendChild(div);
     });
 
-    // Yeni sure yüklenince reset
-    current = 0;
-    started = false;
   });
 }
 
-// FAVORİ (STOP ETMEZ)
+// FAVORİ
 function favToggle(e,x){
   e.stopPropagation();
+  e.preventDefault();
 
   let key="fav_"+sura+"_"+x;
 
@@ -139,31 +140,26 @@ function favToggle(e,x){
 // BAŞLAT
 function startPlay(){
 
-  // Zaten çalıyorsa tekrar başlatma
-  if(isPlaying) return;
-
-  isPlaying = true;
-
-  // SADECE İLK BAŞLARKEN başlangıç ayetini al
-  if(!started){
+  // ilk başlatma
+  if(!isStarted){
     let start = document.getElementById("start").value;
-    current = start ? start-1 : 0;
-    started = true;
+    current = start - 1;
+    isStarted = true;
+    playNext();
+    return;
   }
 
-  playNext();
+  // duraklatıldıysa devam et
+  p.play();
 }
 
 // DURAKLAT
 function pausePlay(){
   p.pause();
-  isPlaying=false;
 }
 
 // AYET AYET OYNAT
 function playNext(){
-
-  if(!isPlaying) return;
 
   if(current >= data.length){
     nextSurah();
@@ -172,7 +168,14 @@ function playNext(){
 
   p.src = data[current].audio;
 
-  highlight();
+  document.querySelectorAll(".ayet").forEach(e=>e.classList.remove("active"));
+
+  let aktif = document.getElementById("a"+current);
+
+  if(aktif){
+    aktif.classList.add("active");
+    aktif.scrollIntoView({behavior:"smooth",block:"center"});
+  }
 
   p.play().catch(()=>{});
 
@@ -180,19 +183,6 @@ function playNext(){
     current++;
     playNext();
   };
-}
-
-// SARI TAKİP
-function highlight(){
-
-  document.querySelectorAll(".ayet").forEach(e=>e.classList.remove("active"));
-
-  let el = document.getElementById("a"+current);
-
-  if(el){
-    el.classList.add("active");
-    el.scrollIntoView({behavior:"smooth",block:"center"});
-  }
 }
 
 // SONRAKİ SURE
@@ -210,9 +200,8 @@ function nextSurah(){
 
   setTimeout(()=>{
     current=0;
-    started=false;
     playNext();
-  },800);
+  },1000);
 }
 
 </script>
