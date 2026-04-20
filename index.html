@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 
-<title>Kuran Dinle PRO</title>
+<title>Kuran Dinle PRO+</title>
 
 <style>
 body{
@@ -12,8 +12,6 @@ body{
   color:white;
   text-align:center;
   font-family:Arial;
-
-  /* ARKA PLAN GÖRSEL */
   background:url("https://images.unsplash.com/photo-1584551246679-0daf3d275d0f") no-repeat center;
   background-size:cover;
 }
@@ -23,8 +21,6 @@ body{
   min-height:100vh;
   padding-bottom:40px;
 }
-
-h1{padding-top:20px;}
 
 select,input,button{
   padding:12px;
@@ -48,13 +44,22 @@ select,input,button{
 .tr{font-size:14px;color:#ccc;}
 
 .kalp{font-size:22px;cursor:pointer;}
+
+#favPage{
+  display:none;
+}
 </style>
 </head>
 
 <body>
 <div class="overlay">
 
-<h1>KURAN DİNLE PRO</h1>
+<h1>KURAN DİNLE PRO+</h1>
+
+<button onclick="showMain()">📖 Kur'an</button>
+<button onclick="showFav()">❤️ Favoriler</button>
+
+<div id="mainPage">
 
 <select id="sure"></select><br>
 
@@ -71,6 +76,13 @@ Başlangıç:
 
 <div id="list"></div>
 
+</div>
+
+<div id="favPage">
+<h2>❤️ Favoriler</h2>
+<div id="favList"></div>
+</div>
+
 <audio id="p"></audio>
 
 </div>
@@ -81,10 +93,11 @@ let dataAR=[];
 let dataTR=[];
 let current=0;
 let sura=1;
+let playing=false;
 
 const p=document.getElementById("p");
 
-// SURELER (114 TAM)
+// SURELER
 fetch("https://api.alquran.cloud/v1/surah")
 .then(r=>r.json())
 .then(d=>{
@@ -96,7 +109,19 @@ fetch("https://api.alquran.cloud/v1/surah")
   });
 });
 
-// YÜKLE (AR + TR AYRI AYRI)
+// SAYFA GEÇİŞ
+function showFav(){
+  document.getElementById("mainPage").style.display="none";
+  document.getElementById("favPage").style.display="block";
+  loadFav();
+}
+
+function showMain(){
+  document.getElementById("mainPage").style.display="block";
+  document.getElementById("favPage").style.display="none";
+}
+
+// YÜKLE
 function load(){
 
   sura = document.getElementById("sure").value;
@@ -123,7 +148,7 @@ function load(){
 
       div.innerHTML=`
         <div class="ar">${a.text}</div>
-        <div class="tr">${dataTR[x] ? dataTR[x].text : ""}</div>
+        <div class="tr">${dataTR[x].text}</div>
         <div class="kalp" onclick="favToggle(event,${x})">
           ${fav?"❤️":"🤍"}
         </div>
@@ -135,7 +160,7 @@ function load(){
   });
 }
 
-// FAVORİ (ASLA BOZMAZ)
+// FAVORİ EKLE / ÇIKAR
 function favToggle(e,x){
   e.stopPropagation();
 
@@ -151,11 +176,51 @@ function favToggle(e,x){
   el.innerHTML = localStorage.getItem(key) ? "❤️" : "🤍";
 }
 
-// BAŞLAT
+// FAVORİ LİSTESİ
+function loadFav(){
+
+  let favList=document.getElementById("favList");
+  favList.innerHTML="";
+
+  for(let i=1;i<=114;i++){
+    for(let j=0;j<300;j++){
+
+      let key="fav_"+i+"_"+j;
+
+      if(localStorage.getItem(key)){
+
+        let div=document.createElement("div");
+        div.className="ayet";
+
+        div.innerHTML=`
+          <b>Sure ${i} - Ayet ${j+1}</b><br>
+          <button onclick="removeFav(${i},${j})">❌ Kaldır</button>
+        `;
+
+        favList.appendChild(div);
+      }
+    }
+  }
+}
+
+// FAVORİDEN KALDIR
+function removeFav(s,a){
+  localStorage.removeItem("fav_"+s+"_"+a);
+  loadFav();
+}
+
+// BAŞLAT (DEVAM EDER)
 function startPlay(){
+
+  if(playing){
+    p.play();
+    return;
+  }
 
   let start = document.getElementById("start").value;
   current = start - 1;
+
+  playing=true;
 
   playNext();
 }
@@ -165,7 +230,7 @@ function pausePlay(){
   p.pause();
 }
 
-// AYET AYET OYNAT
+// AYET AYET
 function playNext(){
 
   if(current >= dataAR.length){
