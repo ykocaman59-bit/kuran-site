@@ -3,21 +3,27 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+
 <title>Kuran Dinle PRO</title>
 
 <style>
 body{
-  background:
-    linear-gradient(rgba(0,0,0,0.75), rgba(0,0,0,0.95)),
-    url("https://images.unsplash.com/photo-1585032226651-759b368d7246?q=80&w=1200")
-    no-repeat center center fixed;
-
-  background-size: cover;
-  color:white;
-  text-align:center;
-  font-family:Arial;
   margin:0;
-  user-select:none;
+  color:white;
+  font-family:Arial;
+  text-align:center;
+
+  /* DOĞRU ARKA PLAN (KURAN TEMASI) */
+  background:
+    linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.9)),
+    url("https://images.unsplash.com/photo-1609599006353-e629aaabfeae");
+  background-size:cover;
+  background-attachment:fixed;
+}
+
+h1{
+  margin-top:20px;
+  font-size:28px;
 }
 
 select,input,button{
@@ -28,16 +34,13 @@ select,input,button{
   border:none;
 }
 
-.ayet{
-  padding:18px;
-  border-bottom:1px solid rgba(255,255,255,0.08);
-  backdrop-filter: blur(2px);
+button{
+  background:#ddd;
 }
 
-.active{
-  background:rgba(255,255,0,0.85);
-  color:black;
-  border-radius:10px;
+.ayet{
+  padding:18px;
+  border-bottom:1px solid #333;
 }
 
 .ar{
@@ -46,12 +49,19 @@ select,input,button{
 
 .tr{
   font-size:14px;
-  color:#ddd;
+  color:#ccc;
 }
 
 .kalp{
-  font-size:22px;
+  font-size:20px;
   cursor:pointer;
+}
+
+/* SARI TAKİP */
+.active{
+  background:yellow;
+  color:black;
+  border-radius:10px;
 }
 </style>
 </head>
@@ -63,7 +73,7 @@ select,input,button{
 <select id="sure"></select><br>
 
 Başlangıç:
-<input type="number" id="start" value="1" min="1"><br>
+<input type="number" id="start" value="1"><br>
 
 <label>
 <input type="checkbox" id="auto"> Otomatik geç
@@ -82,11 +92,10 @@ Başlangıç:
 let data=[];
 let current=0;
 let sura=1;
-let isStarted=false;
 
 const p=document.getElementById("p");
 
-// SURELER
+// SURELERİ ÇEK
 fetch("https://api.alquran.cloud/v1/surah")
 .then(r=>r.json())
 .then(d=>{
@@ -104,14 +113,14 @@ function load(){
   sura = document.getElementById("sure").value;
 
   Promise.all([
-    fetch(`https://api.alquran.cloud/v1/surah/${sura}/ar.alafasy`).then(r=>r.json()),
+    fetch(`https://api.alquran.cloud/v1/surah/${sura}`).then(r=>r.json()),
     fetch(`https://api.alquran.cloud/v1/surah/${sura}/tr.diyanet`).then(r=>r.json())
   ])
   .then(([ar,tr])=>{
 
     data = ar.data.ayahs;
 
-    let list=document.getElementById("list");
+    let list = document.getElementById("list");
     list.innerHTML="";
 
     data.forEach((a,x)=>{
@@ -136,10 +145,9 @@ function load(){
   });
 }
 
-// FAVORİ
+// FAVORİ (KESİNLİKLE DURMAZ)
 function favToggle(e,x){
   e.stopPropagation();
-  e.preventDefault();
 
   let key="fav_"+sura+"_"+x;
 
@@ -156,15 +164,10 @@ function favToggle(e,x){
 // BAŞLAT
 function startPlay(){
 
-  if(!isStarted){
-    let start = document.getElementById("start").value;
-    current = start - 1;
-    isStarted = true;
-    playNext();
-    return;
-  }
+  let start = document.getElementById("start").value;
+  current = start - 1;
 
-  p.play();
+  playNext();
 }
 
 // DURAKLAT
@@ -172,7 +175,7 @@ function pausePlay(){
   p.pause();
 }
 
-// AYET AYET OYNAT
+// AYET AYET OKUMA (TAKİP VAR)
 function playNext(){
 
   if(current >= data.length){
@@ -185,15 +188,14 @@ function playNext(){
   document.querySelectorAll(".ayet").forEach(e=>e.classList.remove("active"));
 
   let aktif = document.getElementById("a"+current);
-
   if(aktif){
     aktif.classList.add("active");
-    aktif.scrollIntoView({behavior:"smooth",block:"center"});
+    aktif.scrollIntoView({behavior:"smooth", block:"center"});
   }
 
   p.play().catch(()=>{});
 
-  p.onended = ()=>{
+  p.onended = function(){
     current++;
     playNext();
   };
