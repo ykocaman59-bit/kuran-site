@@ -3,27 +3,30 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-
 <title>Kuran Dinle PRO</title>
 
 <style>
 body{
   margin:0;
   color:white;
-  font-family:Arial;
   text-align:center;
+  font-family:Arial;
 
-  /* DOĞRU ARKA PLAN (KURAN TEMASI) */
-  background:
-    linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.9)),
-    url("https://images.unsplash.com/photo-1609599006353-e629aaabfeae");
-  background-size:cover;
-  background-attachment:fixed;
+  /* ARKA PLAN */
+  background: url("https://images.unsplash.com/photo-1609599006353-e629aaabfeae") no-repeat center center fixed;
+  background-size: cover;
 }
 
-h1{
-  margin-top:20px;
-  font-size:28px;
+/* KARARTMA */
+body::before{
+  content:"";
+  position:fixed;
+  top:0;
+  left:0;
+  width:100%;
+  height:100%;
+  background:rgba(0,0,0,0.7);
+  z-index:-1;
 }
 
 select,input,button{
@@ -34,13 +37,14 @@ select,input,button{
   border:none;
 }
 
-button{
-  background:#ddd;
-}
-
 .ayet{
   padding:18px;
   border-bottom:1px solid #333;
+}
+
+.active{
+  background:yellow;
+  color:black;
 }
 
 .ar{
@@ -53,15 +57,8 @@ button{
 }
 
 .kalp{
-  font-size:20px;
+  font-size:22px;
   cursor:pointer;
-}
-
-/* SARI TAKİP */
-.active{
-  background:yellow;
-  color:black;
-  border-radius:10px;
 }
 </style>
 </head>
@@ -95,7 +92,7 @@ let sura=1;
 
 const p=document.getElementById("p");
 
-// SURELERİ ÇEK
+// SURELER
 fetch("https://api.alquran.cloud/v1/surah")
 .then(r=>r.json())
 .then(d=>{
@@ -112,40 +109,44 @@ function load(){
 
   sura = document.getElementById("sure").value;
 
-  Promise.all([
-    fetch(`https://api.alquran.cloud/v1/surah/${sura}`).then(r=>r.json()),
-    fetch(`https://api.alquran.cloud/v1/surah/${sura}/tr.diyanet`).then(r=>r.json())
-  ])
-  .then(([ar,tr])=>{
+  fetch(`https://api.alquran.cloud/v1/surah/${sura}/ar.alafasy`)
+  .then(r=>r.json())
+  .then(ar=>{
 
-    data = ar.data.ayahs;
+    fetch(`https://api.alquran.cloud/v1/surah/${sura}/tr.diyanet`)
+    .then(r=>r.json())
+    .then(tr=>{
 
-    let list = document.getElementById("list");
-    list.innerHTML="";
+      data = ar.data.ayahs;
 
-    data.forEach((a,x)=>{
+      let list=document.getElementById("list");
+      list.innerHTML="";
 
-      let fav = localStorage.getItem("fav_"+sura+"_"+x)=="1";
+      data.forEach((a,x)=>{
 
-      let div=document.createElement("div");
-      div.className="ayet";
-      div.id="a"+x;
+        let fav = localStorage.getItem("fav_"+sura+"_"+x)=="1";
 
-      div.innerHTML=`
-        <div class="ar">${a.text}</div>
-        <div class="tr">${tr.data.ayahs[x].text}</div>
-        <div class="kalp" onclick="favToggle(event,${x})">
-          ${fav?"❤️":"🤍"}
-        </div>
-      `;
+        let div=document.createElement("div");
+        div.className="ayet";
+        div.id="a"+x;
 
-      list.appendChild(div);
+        div.innerHTML=`
+          <div class="ar">${a.text}</div>
+          <div class="tr">${tr.data.ayahs[x].text}</div>
+          <div class="kalp" onclick="favToggle(event,${x})">
+            ${fav?"❤️":"🤍"}
+          </div>
+        `;
+
+        list.appendChild(div);
+      });
+
     });
 
   });
 }
 
-// FAVORİ (KESİNLİKLE DURMAZ)
+// FAVORİ
 function favToggle(e,x){
   e.stopPropagation();
 
@@ -161,8 +162,17 @@ function favToggle(e,x){
   el.innerHTML = localStorage.getItem(key) ? "❤️" : "🤍";
 }
 
-// BAŞLAT
+// BAŞLAT (DEVAM ET)
 function startPlay(){
+
+  if(p.src && !p.paused){
+    return;
+  }
+
+  if(p.currentTime > 0){
+    p.play();
+    return;
+  }
 
   let start = document.getElementById("start").value;
   current = start - 1;
@@ -175,7 +185,7 @@ function pausePlay(){
   p.pause();
 }
 
-// AYET AYET OKUMA (TAKİP VAR)
+// AYET AYET
 function playNext(){
 
   if(current >= data.length){
@@ -188,14 +198,15 @@ function playNext(){
   document.querySelectorAll(".ayet").forEach(e=>e.classList.remove("active"));
 
   let aktif = document.getElementById("a"+current);
+
   if(aktif){
     aktif.classList.add("active");
-    aktif.scrollIntoView({behavior:"smooth", block:"center"});
+    aktif.scrollIntoView({behavior:"smooth",block:"center"});
   }
 
   p.play().catch(()=>{});
 
-  p.onended = function(){
+  p.onended = ()=>{
     current++;
     playNext();
   };
