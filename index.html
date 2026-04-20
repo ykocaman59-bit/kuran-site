@@ -16,13 +16,11 @@ body{
   color:white;
   text-align:center;
 
-  /* GERÇEK KURAN GÖRSELİ */
+  /* KURAN GÖRSELİ */
   background:url("https://upload.wikimedia.org/wikipedia/commons/9/97/Quran_open.jpg") no-repeat center center fixed;
   background-size:cover;
 
-  /* YAZI SEÇME KAPALI */
   user-select:none;
-  -webkit-user-select:none;
 }
 
 .overlay{
@@ -36,7 +34,6 @@ select,input,button{
   margin:5px;
   border-radius:10px;
   border:none;
-  font-size:16px;
 }
 
 .ayet{
@@ -51,8 +48,14 @@ select,input,button{
 
 .ar{font-size:26px;}
 .tr{font-size:14px;color:#ccc;}
+.kalp{font-size:20px;cursor:pointer;}
 
-.kalp{font-size:22px;cursor:pointer;}
+#favBox{
+  display:none;
+  background:black;
+  padding:10px;
+  margin-top:10px;
+}
 
 </style>
 </head>
@@ -75,7 +78,9 @@ Başlangıç:
 <button onclick="load()">Yükle</button>
 <button onclick="startPlay()">▶ Başlat</button>
 <button onclick="pausePlay()">⏸ Duraklat</button>
+<button onclick="showFav()">❤️ Favoriler</button>
 
+<div id="favBox"></div>
 <div id="list"></div>
 
 <audio id="player"></audio>
@@ -88,6 +93,7 @@ let data=[], trData=[];
 let sura=1;
 let currentIndex=0;
 let interval=null;
+let isPlaying=false;
 
 const player=document.getElementById("player");
 
@@ -122,14 +128,19 @@ function load(){
 
     data.forEach((a,x)=>{
 
+      let fav = localStorage.getItem("fav_"+sura+"_"+x);
+
       let div=document.createElement("div");
       div.className="ayet";
       div.id="a"+x;
 
       div.innerHTML=`
+        <div><b>${x+1}. Ayet</b></div>
         <div class="ar">${a.text}</div>
         <div class="tr">${trData[x].text}</div>
-        <div class="kalp">🤍</div>
+        <div class="kalp" onclick="favToggle(${x})">
+          ${fav?"❤️":"🤍"}
+        </div>
       `;
 
       list.appendChild(div);
@@ -141,36 +152,86 @@ function load(){
 // BAŞLAT
 function startPlay(){
 
-  let no = String(sura).padStart(3,'0');
+  if(!isPlaying){
+    let no = String(sura).padStart(3,'0');
+    player.src=`https://server8.mp3quran.net/afs/${no}.mp3`;
+    isPlaying=true;
+  }
 
-  player.src=`https://server8.mp3quran.net/afs/${no}.mp3`;
   player.play();
 
-  // AYET TAKİP SÜRESİ (ortalama)
-  let totalTime=player.duration || 60;
-  let perAyah = totalTime / data.length;
+  // duration yüklendikten sonra hesapla
+  player.onloadedmetadata = ()=>{
+    let perAyah = player.duration / data.length;
 
-  clearInterval(interval);
+    clearInterval(interval);
 
-  interval=setInterval(()=>{
+    interval=setInterval(()=>{
 
-    document.querySelectorAll(".ayet").forEach(e=>e.classList.remove("active"));
+      document.querySelectorAll(".ayet").forEach(e=>e.classList.remove("active"));
 
-    let el=document.getElementById("a"+currentIndex);
-    if(el){
-      el.classList.add("active");
-      el.scrollIntoView({behavior:"smooth",block:"center"});
-    }
+      let el=document.getElementById("a"+currentIndex);
+      if(el){
+        el.classList.add("active");
+        el.scrollIntoView({behavior:"smooth",block:"center"});
+      }
 
-    currentIndex++;
+      currentIndex++;
 
-  }, perAyah*1000);
+    }, perAyah*1000);
+  };
 }
 
-// DURAKLAT
+// DURAKLAT (BAŞA DÖNMEZ)
 function pausePlay(){
   player.pause();
   clearInterval(interval);
+}
+
+// FAVORİ
+function favToggle(x){
+
+  let key="fav_"+sura+"_"+x;
+
+  if(localStorage.getItem(key)){
+    localStorage.removeItem(key);
+  }else{
+    localStorage.setItem(key, JSON.stringify({
+      sura:sura,
+      ayet:x+1,
+      text:trData[x].text
+    }));
+  }
+
+  load();
+}
+
+// FAVORİ LİSTE
+function showFav(){
+
+  let box=document.getElementById("favBox");
+  box.style.display = box.style.display=="block" ? "none":"block";
+
+  box.innerHTML="<h3>Favori Ayetler</h3>";
+
+  for(let i in localStorage){
+    if(i.startsWith("fav_")){
+      let d = JSON.parse(localStorage[i]);
+
+      box.innerHTML += `
+        <div style="margin:10px">
+          Sure ${d.sura} - Ayet ${d.ayet}<br>
+          ${d.text}<br>
+          <button onclick="delFav('${i}')">Sil</button>
+        </div>
+      `;
+    }
+  }
+}
+
+function delFav(k){
+  localStorage.removeItem(k);
+  showFav();
 }
 
 </script>
