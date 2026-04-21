@@ -14,7 +14,6 @@ body{
   font-family:Arial;
   background:url("https://images.unsplash.com/photo-1584551246679-0daf3d275d0f") no-repeat center;
   background-size:cover;
-
   user-select:none;
   -webkit-user-select:none;
 }
@@ -136,15 +135,16 @@ autoBox.onchange=()=>{ if(autoBox.checked){repeatBox.checked=false;repeatSurahBo
 repeatBox.onchange=()=>{ if(repeatBox.checked){autoBox.checked=false;repeatSurahBox.checked=false;} };
 repeatSurahBox.onchange=()=>{ if(repeatSurahBox.checked){autoBox.checked=false;repeatBox.checked=false;} };
 
-// 🔥 SURE DEĞİŞİNCE DUR
-sure.onchange=()=>{
-  if(playing){
-    p.pause();
-    playing=false;
-    playBtn.style.display="inline-block";
-    pauseBtn.style.display="none";
-  }
-};
+// SAYFA
+function showFav(){
+  mainPage.style.display="none";
+  favPage.style.display="block";
+  loadFav();
+}
+function showMain(){
+  mainPage.style.display="block";
+  favPage.style.display="none";
+}
 
 // YÜKLE
 function load(){
@@ -163,6 +163,9 @@ function load(){
     list.innerHTML="";
 
     dataAR.forEach((a,x)=>{
+
+      let fav = localStorage.getItem("fav_"+sura+"_"+x)=="1";
+
       let div=document.createElement("div");
       div.className="ayet";
       div.id="a"+x;
@@ -170,6 +173,9 @@ function load(){
       div.innerHTML=`
         <div class="ar">${a.text}</div>
         <div class="tr">${dataTR[x].text}</div>
+        <div class="kalp" onclick="toggleFav(${sura},${x})">
+          ${fav ? "❤️" : "🤍"}
+        </div>
       `;
 
       list.appendChild(div);
@@ -177,93 +183,56 @@ function load(){
   });
 }
 
-// BAŞLAT
-function startPlay(){
+// ❤️ FAVORİ TOGGLE
+function toggleFav(s,a){
+  let key="fav_"+s+"_"+a;
 
-  if(activeSurah !== sura){
-    lastPositions[sura]=undefined;
-  }
-
-  activeSurah=sura;
-
-  if(lastPositions[sura]!=undefined){
-    current=lastPositions[sura];
+  if(localStorage.getItem(key)){
+    localStorage.removeItem(key);
   }else{
-    current=document.getElementById("start").value-1;
+    localStorage.setItem(key,"1");
   }
 
-  playing=true;
-  playNext();
-
-  playBtn.style.display="none";
-  pauseBtn.style.display="inline-block";
+  load(); // anında kalp günceller
 }
 
-// DURAKLAT
-function pausePlay(){
-  p.pause();
-  playing=false;
+// ❤️ FAVORİ LİSTESİ
+async function loadFav(){
 
-  playBtn.style.display="inline-block";
-  pauseBtn.style.display="none";
-}
+  favList.innerHTML="";
 
-// OKUMA
-function playNext(){
+  for(let i=1;i<=114;i++){
 
-  if(current>=dataAR.length){
+    let [ar,tr]=await Promise.all([
+      fetch(`https://api.alquran.cloud/v1/surah/${i}/ar.alafasy`).then(r=>r.json()),
+      fetch(`https://api.alquran.cloud/v1/surah/${i}/tr.diyanet`).then(r=>r.json())
+    ]);
 
-    if(repeatSurahBox.checked){
-      current=0;
-      playNext();
-      return;
+    for(let j=0;j<ar.data.ayahs.length;j++){
+
+      if(localStorage.getItem("fav_"+i+"_"+j)){
+
+        let div=document.createElement("div");
+        div.className="ayet";
+
+        div.innerHTML=`
+          <b>${i}. ${turkceSureler[i]} - Ayet ${j+1}</b><br>
+          <div class="ar">${ar.data.ayahs[j].text}</div>
+          <div class="tr">${tr.data.ayahs[j].text}</div>
+          <button onclick="removeFav(${i},${j})">❌ Sil</button>
+        `;
+
+        favList.appendChild(div);
+      }
     }
-
-    nextSurah();
-    return;
   }
-
-  lastPositions[sura]=current;
-
-  p.src=dataAR[current].audio;
-
-  document.querySelectorAll(".ayet").forEach(e=>e.classList.remove("active"));
-
-  let aktif=document.getElementById("a"+current);
-  if(aktif){
-    aktif.classList.add("active");
-    aktif.scrollIntoView({behavior:"smooth",block:"center"});
-  }
-
-  p.play().catch(()=>{});
-
-  p.onended=()=>{
-
-    if(repeatBox.checked){
-      playNext();
-      return;
-    }
-
-    current++;
-    playNext();
-  };
 }
 
-// SONRAKİ
-function nextSurah(){
-
-  if(!autoBox.checked) return;
-
-  sura++;
-  if(sura>114) return;
-
-  sure.value=sura;
-  load();
-
-  setTimeout(()=>{
-    current=0;
-    playNext();
-  },800);
+// ❌ FAVORİ SİL
+function removeFav(s,a){
+  localStorage.removeItem("fav_"+s+"_"+a);
+  loadFav();
+  load(); // ana ekranda kalp günceller
 }
 
 </script>
