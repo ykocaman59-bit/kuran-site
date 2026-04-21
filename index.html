@@ -15,7 +15,6 @@ body{
   background:url("https://images.unsplash.com/photo-1584551246679-0daf3d275d0f") no-repeat center;
   background-size:cover;
   user-select:none;
-  -webkit-user-select:none;
 }
 
 .overlay{
@@ -94,10 +93,8 @@ let current=0;
 let sura=1;
 let playing=false;
 
-let lastPositions={};
-let activeSurah=null;
-
 const p=document.getElementById("p");
+
 const playBtn=document.getElementById("playBtn");
 const pauseBtn=document.getElementById("pauseBtn");
 
@@ -129,22 +126,6 @@ fetch("https://api.alquran.cloud/v1/surah")
     sure.appendChild(o);
   });
 });
-
-// 🔥 TEK SEÇİM
-autoBox.onchange=()=>{ if(autoBox.checked){repeatBox.checked=false;repeatSurahBox.checked=false;} };
-repeatBox.onchange=()=>{ if(repeatBox.checked){autoBox.checked=false;repeatSurahBox.checked=false;} };
-repeatSurahBox.onchange=()=>{ if(repeatSurahBox.checked){autoBox.checked=false;repeatBox.checked=false;} };
-
-// SAYFA
-function showFav(){
-  mainPage.style.display="none";
-  favPage.style.display="block";
-  loadFav();
-}
-function showMain(){
-  mainPage.style.display="block";
-  favPage.style.display="none";
-}
 
 // YÜKLE
 function load(){
@@ -183,7 +164,57 @@ function load(){
   });
 }
 
-// ❤️ FAVORİ TOGGLE
+// ▶ BAŞLAT
+function startPlay(){
+  current=document.getElementById("start").value-1;
+  playing=true;
+  playNext();
+
+  playBtn.style.display="none";
+  pauseBtn.style.display="inline-block";
+}
+
+// ⏸ DURAKLAT
+function pausePlay(){
+  p.pause();
+  playing=false;
+
+  playBtn.style.display="inline-block";
+  pauseBtn.style.display="none";
+}
+
+// 🔊 OKUMA + SARI TAKİP
+function playNext(){
+
+  if(current>=dataAR.length){
+    return;
+  }
+
+  p.src=dataAR[current].audio;
+
+  document.querySelectorAll(".ayet").forEach(e=>e.classList.remove("active"));
+
+  let aktif=document.getElementById("a"+current);
+  if(aktif){
+    aktif.classList.add("active");
+    aktif.scrollIntoView({behavior:"smooth",block:"center"});
+  }
+
+  p.play();
+
+  p.onended=()=>{
+
+    if(repeatBox.checked){
+      playNext();
+      return;
+    }
+
+    current++;
+    playNext();
+  };
+}
+
+// ❤️ FAVORİ
 function toggleFav(s,a){
   let key="fav_"+s+"_"+a;
 
@@ -193,10 +224,10 @@ function toggleFav(s,a){
     localStorage.setItem(key,"1");
   }
 
-  load(); // anında kalp günceller
+  load();
 }
 
-// ❤️ FAVORİ LİSTESİ
+// FAVORİLER
 async function loadFav(){
 
   favList.innerHTML="";
@@ -213,7 +244,6 @@ async function loadFav(){
       if(localStorage.getItem("fav_"+i+"_"+j)){
 
         let div=document.createElement("div");
-        div.className="ayet";
 
         div.innerHTML=`
           <b>${i}. ${turkceSureler[i]} - Ayet ${j+1}</b><br>
@@ -228,11 +258,9 @@ async function loadFav(){
   }
 }
 
-// ❌ FAVORİ SİL
 function removeFav(s,a){
   localStorage.removeItem("fav_"+s+"_"+a);
   loadFav();
-  load(); // ana ekranda kalp günceller
 }
 
 </script>
