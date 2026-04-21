@@ -7,9 +7,10 @@
 <style>
 body {background:#111;color:white;text-align:center;font-family:Arial;}
 select,input,button {padding:8px;margin:5px;font-size:16px;}
-.ayet {padding:10px;}
+.ayet {padding:10px;border-bottom:1px solid #333;}
 .active {background:yellow;color:black;}
 .meal {font-size:13px;color:#aaa;}
+button.star {background:none;border:none;font-size:18px;color:gold;}
 </style>
 </head>
 
@@ -36,6 +37,9 @@ Sonraki sureye otomatik geç
 
 <button onclick="load()">Yükle</button>
 <button onclick="togglePlay()" id="playBtn">▶ Başlat</button>
+
+<h3>⭐ Favoriler</h3>
+<div id="favList"></div>
 
 <div id="ayetler"></div>
 <audio id="player"></audio>
@@ -77,11 +81,13 @@ function load(){
             html+=`
             <div class="ayet" id="a${i+1}">
             ${i+1}. ${a.text}
+            <button class="star" onclick="fav(${i+1})">⭐</button>
             <div class="meal">${mealList[i].text}</div>
             </div>`;
         });
 
         document.getElementById("ayetler").innerHTML=html;
+        showFavs();
         playAyet();
     });
 }
@@ -141,6 +147,36 @@ function highlight(){
     document.querySelectorAll(".ayet").forEach(e=>e.classList.remove("active"));
     let el=document.getElementById("a"+currentAyet);
     if(el) el.classList.add("active");
+}
+
+// FAVORİ EKLE
+function fav(no){
+    let favs = JSON.parse(localStorage.getItem("fav")) || [];
+
+    let key = currentSure + "-" + no;
+
+    if(!favs.includes(key)){
+        favs.push(key);
+        alert("Favoriye eklendi ⭐");
+    }else{
+        favs = favs.filter(x=>x!=key);
+        alert("Favoriden çıkarıldı ❌");
+    }
+
+    localStorage.setItem("fav", JSON.stringify(favs));
+    showFavs();
+}
+
+// FAVORİ GÖSTER
+function showFavs(){
+    let favs = JSON.parse(localStorage.getItem("fav")) || [];
+    let html="";
+
+    favs.forEach(f=>{
+        html += `<div>${f}</div>`;
+    });
+
+    document.getElementById("favList").innerHTML = html;
 }
 
 // KALDIĞI YER
