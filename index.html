@@ -14,6 +14,7 @@ body{
   font-family:Arial;
   background:url("https://images.unsplash.com/photo-1584551246679-0daf3d275d0f") no-repeat center;
   background-size:cover;
+  user-select:none;
 }
 
 .overlay{
@@ -69,7 +70,11 @@ Başlangıç:
 </label>
 
 <label>
-<input type="checkbox" id="repeat"> Ayeti tekrar et
+<input type="checkbox" id="repeatAyet"> Ayeti tekrar et
+</label>
+
+<label>
+<input type="checkbox" id="repeatSure"> Sureyi tekrar et
 </label><br>
 
 <button onclick="load()">Yükle</button>
@@ -99,32 +104,44 @@ let playing=false;
 
 const p=document.getElementById("p");
 
-// 🔥 SURELER
+// 🔥 TÜRKÇE SURE İSİMLERİ
+const turkceSureler = [
+"", "Fatiha","Bakara","Ali İmran","Nisa","Maide","Enam","Araf","Enfal","Tevbe",
+"Yunus","Hud","Yusuf","Ra'd","İbrahim","Hicr","Nahl","İsra","Kehf","Meryem",
+"Taha","Enbiya","Hac","Müminun","Nur","Furkan","Şuara","Neml","Kasas","Ankebut",
+"Rum","Lokman","Secde","Ahzab","Sebe","Fatır","Yasin","Saffat","Sad","Zümer",
+"Mümin","Fussilet","Şura","Zuhruf","Duhan","Casiye","Ahkaf","Muhammed","Fetih","Hucurat",
+"Kaf","Zariyat","Tur","Necm","Kamer","Rahman","Vakıa","Hadid","Mücadele","Haşr",
+"Mümtehine","Saf","Cuma","Münafikun","Tegabun","Talak","Tahrim","Mülk","Kalem","Hakka",
+"Mearic","Nuh","Cin","Müzzemmil","Müddessir","Kıyamet","İnsan","Mürselat","Nebe","Naziat",
+"Abese","Tekvir","İnfitar","Mutaffifin","İnşikak","Buruc","Tarık","Ala","Gaşiye","Fecr",
+"Beled","Şems","Leyl","Duha","İnşirah","Tin","Alak","Kadir","Beyyine","Zilzal",
+"Adiyat","Karia","Tekasür","Asr","Hümeze","Fil","Kureyş","Maun","Kevser","Kafirun",
+"Nasr","Tebbet","İhlas","Felak","Nas"
+];
+
+// SURELER
 fetch("https://api.alquran.cloud/v1/surah")
 .then(r=>r.json())
 .then(d=>{
   d.data.forEach(s=>{
     let o=document.createElement("option");
     o.value=s.number;
-    o.textContent=s.number+". "+s.englishName;
+    o.textContent=s.number+". "+turkceSureler[s.number];
     sure.appendChild(o);
   });
 });
 
-// 🔥 SADECE 1 CHECKBOX AKTİF OLSUN
-document.getElementById("auto").addEventListener("change",()=>{
-  if(auto.checked) repeat.checked=false;
-});
-
-document.getElementById("repeat").addEventListener("change",()=>{
-  if(repeat.checked) auto.checked=false;
-});
+// 🔥 CHECKBOX KONTROL (TEK AKTİF)
+auto.onchange = ()=>{ if(auto.checked){ repeatAyet.checked=false; repeatSure.checked=false; } };
+repeatAyet.onchange = ()=>{ if(repeatAyet.checked){ auto.checked=false; repeatSure.checked=false; } };
+repeatSure.onchange = ()=>{ if(repeatSure.checked){ auto.checked=false; repeatAyet.checked=false; } };
 
 // 🔥 SURE DEĞİŞİNCE DUR
-document.getElementById("sure").addEventListener("change",()=>{
+sure.onchange = ()=>{
   p.pause();
   playing=false;
-});
+};
 
 // SAYFA
 function showFav(){
@@ -138,15 +155,14 @@ function showMain(){
   favPage.style.display="none";
 }
 
-// 🔥 YÜKLE (HER ZAMAN BAŞTAN)
+// YÜKLE
 function load(){
 
   p.pause();
   playing=false;
 
   sura = document.getElementById("sure").value;
-
-  current = 0; // 🔥 KRİTİK DÜZELTME
+  current = 0;
 
   Promise.all([
     fetch(`https://api.alquran.cloud/v1/surah/${sura}/ar.alafasy`).then(r=>r.json()),
@@ -157,11 +173,9 @@ function load(){
     dataAR = ar.data.ayahs;
     dataTR = tr.data.ayahs;
 
-    let list=document.getElementById("list");
     list.innerHTML="";
 
     dataAR.forEach((a,x)=>{
-
       let fav = localStorage.getItem("fav_"+sura+"_"+x)=="1";
 
       let div=document.createElement("div");
@@ -171,7 +185,7 @@ function load(){
       div.innerHTML=`
         <div class="ar">${a.text}</div>
         <div class="tr">${dataTR[x].text}</div>
-        <div class="kalp" id="kalp_${sura}_${x}" onclick="favToggle(event,${x})">
+        <div class="kalp" onclick="favToggle(event,${x})">
           ${fav?"❤️":"🤍"}
         </div>
       `;
@@ -185,7 +199,6 @@ function load(){
 // FAVORİ
 function favToggle(e,x){
   e.stopPropagation();
-
   let key="fav_"+sura+"_"+x;
 
   if(localStorage.getItem(key)){
@@ -193,21 +206,11 @@ function favToggle(e,x){
   }else{
     localStorage.setItem(key,"1");
   }
-
-  updateKalp(sura,x);
 }
 
-function updateKalp(s,a){
-  let el=document.getElementById("kalp_"+s+"_"+a);
-  if(el){
-    el.innerHTML = localStorage.getItem("fav_"+s+"_"+a) ? "❤️" : "🤍";
-  }
-}
-
-// FAVORİ LİSTESİ
+// FAVORİ LİSTESİ (🔥 İSİM DÜZELTİLDİ)
 async function loadFav(){
 
-  let favList=document.getElementById("favList");
   favList.innerHTML="";
 
   for(let i=1;i<=114;i++){
@@ -225,7 +228,7 @@ async function loadFav(){
         div.className="ayet";
 
         div.innerHTML=`
-          <b>Sure ${i} - Ayet ${j+1}</b><br>
+          <b>${turkceSureler[i]} - Ayet ${j+1}</b><br>
           <div class="ar">${ar.data.ayahs[j].text}</div>
           <div class="tr">${tr.data.ayahs[j].text}</div>
           <button onclick="removeFav(${i},${j})">❌ Kaldır</button>
@@ -240,21 +243,17 @@ async function loadFav(){
 // SİL
 function removeFav(s,a){
   localStorage.removeItem("fav_"+s+"_"+a);
-  updateKalp(s,a);
   loadFav();
 }
 
 // BAŞLAT
 function startPlay(){
-
   if(playing){
     p.play();
     return;
   }
 
   playing=true;
-
-  // 🔥 HER ZAMAN current'tan başlar (load sıfırladı)
   playNext();
 }
 
@@ -268,6 +267,14 @@ function pausePlay(){
 function playNext(){
 
   if(current >= dataAR.length){
+
+    // 🔁 SURE TEKRAR
+    if(repeatSure.checked){
+      current=0;
+      playNext();
+      return;
+    }
+
     nextSurah();
     return;
   }
@@ -277,7 +284,6 @@ function playNext(){
   document.querySelectorAll(".ayet").forEach(e=>e.classList.remove("active"));
 
   let aktif=document.getElementById("a"+current);
-
   if(aktif){
     aktif.classList.add("active");
     aktif.scrollIntoView({behavior:"smooth",block:"center"});
@@ -287,7 +293,7 @@ function playNext(){
 
   p.onended = ()=>{
 
-    if(repeat.checked){
+    if(repeatAyet.checked){
       playNext();
       return;
     }
@@ -303,7 +309,6 @@ function nextSurah(){
   if(!auto.checked) return;
 
   sura++;
-
   if(sura>114) return;
 
   sure.value = sura;
