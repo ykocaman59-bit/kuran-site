@@ -5,8 +5,9 @@ let current=0;
 let sura=1;
 let playing=false;
 
-let lastPositions={};     // 🔥 sure bazlı kayıt
-let activeSurah=null;     // 🔥 gerçekten başlatılan sure
+let lastPositions={};   // 🔥 her sure için kaldığı ayet
+let activeSurah=null;   // 🔥 o an çalan sure
+let loadedSurah=null;   // 🔥 en son yüklenen sure
 
 const p=document.getElementById("p");
 const playBtn=document.getElementById("playBtn");
@@ -31,15 +32,41 @@ sure.onchange=()=>{
   }
 };
 
+// SAYFA
+function showFav(){
+  mainPage.style.display="none";
+  favPage.style.display="block";
+  loadFav();
+}
+function showMain(){
+  mainPage.style.display="block";
+  favPage.style.display="none";
+}
+
+// SURELER
+fetch("https://api.alquran.cloud/v1/surah")
+.then(r=>r.json())
+.then(d=>{
+  d.data.forEach(s=>{
+    let o=document.createElement("option");
+    o.value=s.number;
+    o.textContent=s.number+". "+turkceSureler[s.number];
+    sure.appendChild(o);
+  });
+});
+
 // YÜKLE
 function load(){
+
   sura=parseInt(sure.value);
+  loadedSurah = sura;
 
   Promise.all([
     fetch(`https://api.alquran.cloud/v1/surah/${sura}/ar.alafasy`).then(r=>r.json()),
     fetch(`https://api.alquran.cloud/v1/surah/${sura}/tr.diyanet`).then(r=>r.json())
   ])
   .then(([ar,tr])=>{
+
     dataAR=ar.data.ayahs;
     dataTR=tr.data.ayahs;
 
@@ -62,23 +89,25 @@ function load(){
 
       list.appendChild(div);
     });
-
-    // 🔥 sadece yükleme, current değiştirme
   });
 }
 
-// ▶ BAŞLAT (TAM FIX)
+// ▶ BAŞLAT (EN ÖNEMLİ FIX)
 function startPlay(){
 
-  // 🔥 Eğer aynı sure tekrar başlatılıyorsa
-  if(activeSurah === sura){
-    current = lastPositions[sura] ?? current;
-  }else{
-    // 🔥 yeni sure başlatıldıysa BAŞTAN
-    current = document.getElementById("start").value - 1;
+  // 🔥 Eğer yüklenen sure ile çalınan farklıysa
+  if(activeSurah !== loadedSurah){
+
+    // 🔥 Eğer bu sure daha önce oynatıldıysa → kaldığı yerden
+    if(lastPositions[loadedSurah] !== undefined){
+      current = lastPositions[loadedSurah];
+    }else{
+      // 🔥 ilk defa → başlangıç inputundan
+      current = document.getElementById("start").value - 1;
+    }
   }
 
-  activeSurah = sura;
+  activeSurah = loadedSurah;
 
   playing=true;
   playNext();
@@ -126,8 +155,8 @@ function playNext(){
     return;
   }
 
-  // 🔥 KAYDET
-  lastPositions[sura]=current;
+  // 🔥 AYETİ KAYDET
+  lastPositions[activeSurah]=current;
 
   p.src=dataAR[current].audio;
 
