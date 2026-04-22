@@ -1,28 +1,136 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<title>Kuran Dinle PRO+</title>
+
+<style>
+body{
+  margin:0;
+  color:white;
+  text-align:center;
+  font-family:Arial;
+  background:url("https://images.unsplash.com/photo-1584551246679-0daf3d275d0f") no-repeat center;
+  background-size:cover;
+}
+.overlay{
+  background:rgba(0,0,0,0.85);
+  min-height:100vh;
+}
+select,input,button{
+  padding:12px;
+  margin:6px;
+  font-size:16px;
+  border-radius:12px;
+  border:none;
+}
+.ayet{
+  padding:18px;
+  border-bottom:1px solid #333;
+}
+.active{
+  background:yellow;
+  color:black;
+}
+.ar{font-size:26px;}
+.tr{font-size:14px;color:#ccc;}
+.kalp{font-size:22px;cursor:pointer;}
+#favPage{display:none;}
+</style>
+</head>
+
+<body>
+<div class="overlay">
+
+<h1>KURAN DİNLE PRO+</h1>
+
+<button onclick="showMain()">📖 Kur'an</button>
+<button onclick="showFav()">❤️ Favoriler</button>
+
+<div id="mainPage">
+
+<select id="sure"></select><br>
+
+Başlangıç:
+<input type="number" id="start" value="1"><br>
+
+<label><input type="checkbox" id="auto"> Otomatik geç</label><br>
+<label><input type="checkbox" id="repeat"> Ayeti tekrar et</label><br>
+<label><input type="checkbox" id="repeatSurah"> Sureyi tekrar et</label><br>
+
+<button onclick="load()">Yükle</button>
+
+<button id="playBtn" onclick="startPlay()">▶ Başlat</button>
+<button id="pauseBtn" onclick="pausePlay()" style="display:none;">⏸ Duraklat</button>
+
+<div id="list"></div>
+
+</div>
+
+<div id="favPage">
+<h2>❤️ Favoriler</h2>
+<div id="favList"></div>
+</div>
+
+<audio id="p"></audio>
+
+</div>
+
 <script>
 
-let dataAR=[], dataTR=[];
-let current=0;
-let sura=1;
-let playing=false;
-
-let lastPositions={};   // 🔥 her sure için kaldığı ayet
-let activeSurah=null;   // 🔥 o an çalan sure
-let loadedSurah=null;   // 🔥 en son yüklenen sure
-
+// ELEMENTLER
 const p=document.getElementById("p");
 const playBtn=document.getElementById("playBtn");
 const pauseBtn=document.getElementById("pauseBtn");
+
+const sure=document.getElementById("sure");
+const list=document.getElementById("list");
+const favList=document.getElementById("favList");
 
 const autoBox=document.getElementById("auto");
 const repeatBox=document.getElementById("repeat");
 const repeatSurahBox=document.getElementById("repeatSurah");
 
-// 🔥 TEK SEÇİM
+// VERİLER
+let dataAR=[], dataTR=[];
+let current=0;
+let sura=1;
+let playing=false;
+
+let lastPositions = {};
+let activeSurah = null;
+
+// SAYFA
+function showFav(){
+  document.getElementById("mainPage").style.display="none";
+  document.getElementById("favPage").style.display="block";
+  loadFav();
+}
+function showMain(){
+  document.getElementById("mainPage").style.display="block";
+  document.getElementById("favPage").style.display="none";
+}
+
+// SURELERİ DOLDUR
+fetch("https://api.alquran.cloud/v1/surah")
+.then(r=>r.json())
+.then(d=>{
+  d.data.forEach(s=>{
+    let o=document.createElement("option");
+    o.value=s.number;
+    o.textContent=s.number+". "+s.englishName;
+    sure.appendChild(o);
+  });
+});
+
+// TEK SEÇİM
 autoBox.onchange=()=>{ if(autoBox.checked){repeatBox.checked=false;repeatSurahBox.checked=false;} };
 repeatBox.onchange=()=>{ if(repeatBox.checked){autoBox.checked=false;repeatSurahBox.checked=false;} };
 repeatSurahBox.onchange=()=>{ if(repeatSurahBox.checked){autoBox.checked=false;repeatBox.checked=false;} };
 
-// 🔥 SURE DEĞİŞİNCE DUR
+// SURE DEĞİŞİNCE DUR
 sure.onchange=()=>{
   if(playing){
     p.pause();
@@ -32,41 +140,15 @@ sure.onchange=()=>{
   }
 };
 
-// SAYFA
-function showFav(){
-  mainPage.style.display="none";
-  favPage.style.display="block";
-  loadFav();
-}
-function showMain(){
-  mainPage.style.display="block";
-  favPage.style.display="none";
-}
-
-// SURELER
-fetch("https://api.alquran.cloud/v1/surah")
-.then(r=>r.json())
-.then(d=>{
-  d.data.forEach(s=>{
-    let o=document.createElement("option");
-    o.value=s.number;
-    o.textContent=s.number+". "+turkceSureler[s.number];
-    sure.appendChild(o);
-  });
-});
-
 // YÜKLE
 function load(){
-
   sura=parseInt(sure.value);
-  loadedSurah = sura;
 
   Promise.all([
     fetch(`https://api.alquran.cloud/v1/surah/${sura}/ar.alafasy`).then(r=>r.json()),
     fetch(`https://api.alquran.cloud/v1/surah/${sura}/tr.diyanet`).then(r=>r.json())
   ])
   .then(([ar,tr])=>{
-
     dataAR=ar.data.ayahs;
     dataTR=tr.data.ayahs;
 
@@ -92,22 +174,16 @@ function load(){
   });
 }
 
-// ▶ BAŞLAT (EN ÖNEMLİ FIX)
+// ▶ BAŞLAT
 function startPlay(){
 
-  // 🔥 Eğer yüklenen sure ile çalınan farklıysa
-  if(activeSurah !== loadedSurah){
-
-    // 🔥 Eğer bu sure daha önce oynatıldıysa → kaldığı yerden
-    if(lastPositions[loadedSurah] !== undefined){
-      current = lastPositions[loadedSurah];
-    }else{
-      // 🔥 ilk defa → başlangıç inputundan
-      current = document.getElementById("start").value - 1;
-    }
+  if(activeSurah === sura){
+    current = lastPositions[sura] ?? 0;
+  }else{
+    current = document.getElementById("start").value - 1;
   }
 
-  activeSurah = loadedSurah;
+  activeSurah = sura;
 
   playing=true;
   playNext();
@@ -155,8 +231,7 @@ function playNext(){
     return;
   }
 
-  // 🔥 AYETİ KAYDET
-  lastPositions[activeSurah]=current;
+  lastPositions[sura]=current;
 
   p.src=dataAR[current].audio;
 
@@ -171,31 +246,27 @@ function playNext(){
   p.play().catch(()=>{});
 
   p.onended=()=>{
-
     if(repeatBox.checked){
       playNext();
       return;
     }
-
     current++;
     playNext();
   };
 }
 
-// ❤️ FAVORİ
+// FAVORİ
 function toggleFav(s,a){
   let key="fav_"+s+"_"+a;
-
   if(localStorage.getItem(key)){
     localStorage.removeItem(key);
   }else{
     localStorage.setItem(key,"1");
   }
-
   load();
 }
 
-// ❤️ FAVORİ LİSTE
+// FAVORİ LİSTE
 async function loadFav(){
 
   favList.innerHTML="";
@@ -215,7 +286,7 @@ async function loadFav(){
         div.className="ayet";
 
         div.innerHTML=`
-          <b>${i}. ${turkceSureler[i]} - Ayet ${j+1}</b><br>
+          <b>${i}. Ayet ${j+1}</b><br>
           <div class="ar">${ar.data.ayahs[j].text}</div>
           <div class="tr">${tr.data.ayahs[j].text}</div>
           <button onclick="removeFav(${i},${j})">❌ Sil</button>
@@ -234,3 +305,6 @@ function removeFav(s,a){
 }
 
 </script>
+
+</body>
+</html>
