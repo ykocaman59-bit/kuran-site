@@ -65,21 +65,12 @@ select,input,button{
 Başlangıç:
 <input type="number" id="start" value="1"><br>
 
-<label>
-<input type="checkbox" id="auto"> Otomatik geç
-</label>
-
-<label>
-<input type="checkbox" id="repeatAyet"> Ayeti tekrar et
-</label>
-
-<label>
-<input type="checkbox" id="repeatSure"> Sureyi tekrar et
-</label><br>
+<label><input type="checkbox" id="auto"> Otomatik geç</label>
+<label><input type="checkbox" id="repeatAyet"> Ayeti tekrar et</label>
+<label><input type="checkbox" id="repeatSure"> Sureyi tekrar et</label><br>
 
 <button onclick="load()">Yükle</button>
-<button onclick="startPlay()">▶ Başlat</button>
-<button onclick="pausePlay()">⏸ Duraklat</button>
+<button onclick="togglePlay()" id="playBtn">▶ Başlat</button>
 
 <div id="list"></div>
 
@@ -102,11 +93,13 @@ let current=0;
 let sura=1;
 let playing=false;
 
-const p=document.getElementById("p");
+let lastPos={};
 
-// 🔥 TÜRKÇE SURE İSİMLERİ
-const turkceSureler = [
-"", "Fatiha","Bakara","Ali İmran","Nisa","Maide","Enam","Araf","Enfal","Tevbe",
+const p=document.getElementById("p");
+const playBtn=document.getElementById("playBtn");
+
+// TÜRKÇE SURELER
+const turkceSureler=["","Fatiha","Bakara","Ali İmran","Nisa","Maide","Enam","Araf","Enfal","Tevbe",
 "Yunus","Hud","Yusuf","Ra'd","İbrahim","Hicr","Nahl","İsra","Kehf","Meryem",
 "Taha","Enbiya","Hac","Müminun","Nur","Furkan","Şuara","Neml","Kasas","Ankebut",
 "Rum","Lokman","Secde","Ahzab","Sebe","Fatır","Yasin","Saffat","Sad","Zümer",
@@ -117,8 +110,7 @@ const turkceSureler = [
 "Abese","Tekvir","İnfitar","Mutaffifin","İnşikak","Buruc","Tarık","Ala","Gaşiye","Fecr",
 "Beled","Şems","Leyl","Duha","İnşirah","Tin","Alak","Kadir","Beyyine","Zilzal",
 "Adiyat","Karia","Tekasür","Asr","Hümeze","Fil","Kureyş","Maun","Kevser","Kafirun",
-"Nasr","Tebbet","İhlas","Felak","Nas"
-];
+"Nasr","Tebbet","İhlas","Felak","Nas"];
 
 // SURELER
 fetch("https://api.alquran.cloud/v1/surah")
@@ -132,15 +124,16 @@ fetch("https://api.alquran.cloud/v1/surah")
   });
 });
 
-// 🔥 CHECKBOX KONTROL (TEK AKTİF)
-auto.onchange = ()=>{ if(auto.checked){ repeatAyet.checked=false; repeatSure.checked=false; } };
-repeatAyet.onchange = ()=>{ if(repeatAyet.checked){ auto.checked=false; repeatSure.checked=false; } };
-repeatSure.onchange = ()=>{ if(repeatSure.checked){ auto.checked=false; repeatAyet.checked=false; } };
+// TEK SEÇİM
+auto.onchange=()=>{ if(auto.checked){repeatAyet.checked=false;repeatSure.checked=false;} }
+repeatAyet.onchange=()=>{ if(repeatAyet.checked){auto.checked=false;repeatSure.checked=false;} }
+repeatSure.onchange=()=>{ if(repeatSure.checked){auto.checked=false;repeatAyet.checked=false;} }
 
-// 🔥 SURE DEĞİŞİNCE DUR
-sure.onchange = ()=>{
+// SURE DEĞİŞİNCE DUR
+sure.onchange=()=>{
   p.pause();
   playing=false;
+  playBtn.innerHTML="▶ Başlat";
 };
 
 // SAYFA
@@ -149,7 +142,6 @@ function showFav(){
   favPage.style.display="block";
   loadFav();
 }
-
 function showMain(){
   mainPage.style.display="block";
   favPage.style.display="none";
@@ -161,8 +153,8 @@ function load(){
   p.pause();
   playing=false;
 
-  sura = document.getElementById("sure").value;
-  current = 0;
+  sura=document.getElementById("sure").value;
+  current = lastPos[sura] ?? 0;
 
   Promise.all([
     fetch(`https://api.alquran.cloud/v1/surah/${sura}/ar.alafasy`).then(r=>r.json()),
@@ -170,13 +162,13 @@ function load(){
   ])
   .then(([ar,tr])=>{
 
-    dataAR = ar.data.ayahs;
-    dataTR = tr.data.ayahs;
+    dataAR=ar.data.ayahs;
+    dataTR=tr.data.ayahs;
 
     list.innerHTML="";
 
     dataAR.forEach((a,x)=>{
-      let fav = localStorage.getItem("fav_"+sura+"_"+x)=="1";
+      let fav=localStorage.getItem("fav_"+sura+"_"+x)=="1";
 
       let div=document.createElement("div");
       div.className="ayet";
@@ -185,7 +177,7 @@ function load(){
       div.innerHTML=`
         <div class="ar">${a.text}</div>
         <div class="tr">${dataTR[x].text}</div>
-        <div class="kalp" onclick="favToggle(event,${x})">
+        <div class="kalp" id="kalp_${sura}_${x}" onclick="favToggle(event,${x})">
           ${fav?"❤️":"🤍"}
         </div>
       `;
@@ -193,33 +185,36 @@ function load(){
       list.appendChild(div);
     });
 
+    togglePlay();
   });
 }
 
-// FAVORİ
+// FAVORİ TOGGLE (🔥 DÜZELTME BURADA)
 function favToggle(e,x){
   e.stopPropagation();
+
   let key="fav_"+sura+"_"+x;
+  let el=document.getElementById("kalp_"+sura+"_"+x);
 
   if(localStorage.getItem(key)){
     localStorage.removeItem(key);
+    if(el) el.innerHTML="🤍";
   }else{
     localStorage.setItem(key,"1");
+    if(el) el.innerHTML="❤️";
   }
 }
 
-// FAVORİ LİSTESİ (🔥 İSİM DÜZELTİLDİ)
+// FAVORİ LİSTESİ
 async function loadFav(){
-
   favList.innerHTML="";
 
   for(let i=1;i<=114;i++){
-
     for(let j=0;j<300;j++){
 
       if(localStorage.getItem("fav_"+i+"_"+j)){
 
-        let [ar,tr] = await Promise.all([
+        let [ar,tr]=await Promise.all([
           fetch(`https://api.alquran.cloud/v1/surah/${i}/ar.alafasy`).then(r=>r.json()),
           fetch(`https://api.alquran.cloud/v1/surah/${i}/tr.diyanet`).then(r=>r.json())
         ]);
@@ -246,29 +241,24 @@ function removeFav(s,a){
   loadFav();
 }
 
-// BAŞLAT
-function startPlay(){
-  if(playing){
-    p.play();
-    return;
+// PLAY
+function togglePlay(){
+  if(!playing){
+    playing=true;
+    playBtn.innerHTML="⏸ Duraklat";
+    playNext();
+  }else{
+    p.pause();
+    playing=false;
+    playBtn.innerHTML="▶ Başlat";
   }
-
-  playing=true;
-  playNext();
-}
-
-// DURAKLAT
-function pausePlay(){
-  p.pause();
-  playing=false;
 }
 
 // OKUMA
 function playNext(){
 
-  if(current >= dataAR.length){
+  if(current>=dataAR.length){
 
-    // 🔁 SURE TEKRAR
     if(repeatSure.checked){
       current=0;
       playNext();
@@ -279,7 +269,9 @@ function playNext(){
     return;
   }
 
-  p.src = dataAR[current].audio;
+  lastPos[sura]=current;
+
+  p.src=dataAR[current].audio;
 
   document.querySelectorAll(".ayet").forEach(e=>e.classList.remove("active"));
 
@@ -291,7 +283,7 @@ function playNext(){
 
   p.play().catch(()=>{});
 
-  p.onended = ()=>{
+  p.onended=()=>{
 
     if(repeatAyet.checked){
       playNext();
@@ -311,14 +303,9 @@ function nextSurah(){
   sura++;
   if(sura>114) return;
 
-  sure.value = sura;
+  sure.value=sura;
 
   load();
-
-  setTimeout(()=>{
-    current=0;
-    playNext();
-  },1000);
 }
 
 </script>
