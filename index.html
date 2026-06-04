@@ -2,316 +2,211 @@
 <html lang="tr">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-
-<title>Kuran Dinle PRO+</title>
-
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fly Müzik</title>
 <style>
+*{
+margin:0;
+padding:0;
+box-sizing:border-box;
+font-family:Arial,sans-serif;
+}
+
 body{
-  margin:0;
-  color:white;
-  text-align:center;
-  font-family:Arial;
-  background:url("https://images.unsplash.com/photo-1584551246679-0daf3d275d0f") no-repeat center;
-  background-size:cover;
-  user-select:none;
+background:#121212;
+color:#fff;
+padding-bottom:120px;
 }
-.overlay{
-  background:rgba(0,0,0,0.85);
-  min-height:100vh;
-  padding-bottom:40px;
+
+header{
+background:#1DB954;
+padding:20px;
+text-align:center;
+font-size:28px;
+font-weight:bold;
 }
-select,input,button{
-  padding:12px;
-  margin:6px;
-  font-size:16px;
-  border-radius:12px;
-  border:none;
+
+.container{
+padding:15px;
 }
-.ayet{
-  padding:18px;
-  border-bottom:1px solid #333;
+
+.search{
+display:flex;
+gap:10px;
+margin-bottom:20px;
 }
-.active{
-  background:yellow;
-  color:black;
+
+.search input{
+flex:1;
+padding:14px;
+border:none;
+border-radius:10px;
+font-size:16px;
 }
-.ar{font-size:26px;}
-.tr{font-size:14px;color:#ccc;}
-.kalp{font-size:22px;cursor:pointer;}
-#favPage{display:none;}
+
+.search button{
+padding:14px 20px;
+border:none;
+border-radius:10px;
+background:#1DB954;
+color:white;
+font-weight:bold;
+cursor:pointer;
+}
+
+.song{
+display:flex;
+align-items:center;
+background:#1e1e1e;
+border-radius:12px;
+padding:10px;
+margin-bottom:10px;
+gap:12px;
+}
+
+.song img{
+width:80px;
+height:80px;
+border-radius:10px;
+object-fit:cover;
+}
+
+.info{
+flex:1;
+}
+
+.title{
+font-size:18px;
+font-weight:bold;
+}
+
+.artist{
+font-size:14px;
+color:#aaa;
+margin-top:4px;
+}
+
+.play{
+background:#1DB954;
+color:white;
+border:none;
+padding:10px 14px;
+border-radius:8px;
+cursor:pointer;
+}
+
+.player{
+position:fixed;
+bottom:0;
+left:0;
+right:0;
+background:#181818;
+padding:15px;
+border-top:1px solid #333;
+}
+
+#nowPlaying{
+margin-bottom:8px;
+font-size:14px;
+}
+
+audio{
+width:100%;
+}
 </style>
 </head>
-
 <body>
-<div class="overlay">
-
-<h1>KURAN DİNLE PRO+</h1>
-
-<button onclick="showMain()">📖 Kur'an</button>
-<button onclick="showFav()">❤️ Favoriler</button>
-
-<div id="mainPage">
-
-<select id="sure"></select><br>
-
-Başlangıç:
-<input type="number" id="start" value="1"><br>
-
-<label><input type="checkbox" id="auto"> Otomatik geç</label>
-<label><input type="checkbox" id="repeatAyet"> Ayeti tekrar et</label>
-<label><input type="checkbox" id="repeatSure"> Sureyi tekrar et</label><br>
-
-<button onclick="load()">Yükle</button>
-<button onclick="togglePlay()" id="playBtn">▶ Başlat</button>
-
-<div id="list"></div>
-
+<header>🎵 Fly Müzik</header>
+<div class="container">
+<div class="search">
+<input id="searchInput" type="text" placeholder="Şarkı veya sanatçı ara">
+<button onclick="searchMusic()">Ara</button>
+</div>
+<div id="results"></div>
 </div>
 
-<div id="favPage">
-<h2>❤️ Favoriler</h2>
-<div id="favList"></div>
-</div>
-
-<audio id="p"></audio>
-
+<div class="player">
+<div id="nowPlaying">Bir şarkı seç...</div>
+<audio id="audioPlayer" controls></audio>
 </div>
 
 <script>
+const resultsDiv = document.getElementById("results");
+const player = document.getElementById("audioPlayer");
+const nowPlaying = document.getElementById("nowPlaying");
 
-// VERİLER
-let dataAR=[];
-let dataTR=[];
-let current=0;
-let sura=1;
-let playing=false;
+// Her zaman açık ve CORS engeli olmayan küresel SoundCloud API köprüsü
+const apiURL = "https://node-sc-v2.onrender.com/search?q=";
 
-const p=document.getElementById("p");
-const playBtn=document.getElementById("playBtn");
+async function searchMusic(){
+    const query = document.getElementById("searchInput").value.trim();
 
-// TÜRKÇE SURELER
-const turkceSureler=["","Fatiha","Bakara","Ali İmran","Nisa","Maide","Enam","Araf","Enfal","Tevbe",
-"Yunus","Hud","Yusuf","Ra'd","İbrahim","Hicr","Nahl","İsra","Kehf","Meryem",
-"Taha","Enbiya","Hac","Müminun","Nur","Furkan","Şuara","Neml","Kasas","Ankebut",
-"Rum","Lokman","Secde","Ahzab","Sebe","Fatır","Yasin","Saffat","Sad","Zümer",
-"Mümin","Fussilet","Şura","Zuhruf","Duhan","Casiye","Ahkaf","Muhammed","Fetih","Hucurat",
-"Kaf","Zariyat","Tur","Necm","Kamer","Rahman","Vakıa","Hadid","Mücadele","Haşr",
-"Mümtehine","Saf","Cuma","Münafikun","Tegabun","Talak","Tahrim","Mülk","Kalem","Hakka",
-"Mearic","Nuh","Cin","Müzzemmil","Müddessir","Kıyamet","İnsan","Mürselat","Nebe","Naziat",
-"Abese","Tekvir","İnfitar","Mutaffifin","İnşikak","Buruc","Tarık","Ala","Gaşiye","Fecr",
-"Beled","Şems","Leyl","Duha","İnşirah","Tin","Alak","Kadir","Beyyine","Zilzal",
-"Adiyat","Karia","Tekasür","Asr","Hümeze","Fil","Kureyş","Maun","Kevser","Kafirun",
-"Nasr","Tebbet","İhlas","Felak","Nas"];
-
-// SURE LİSTESİ
-fetch("https://api.alquran.cloud/v1/surah")
-.then(r=>r.json())
-.then(d=>{
-  d.data.forEach(s=>{
-    let o=document.createElement("option");
-    o.value=s.number;
-    o.textContent=s.number+". "+turkceSureler[s.number];
-    sure.appendChild(o);
-  });
-});
-
-// CHECKBOX TEK SEÇİM
-auto.onchange=()=>{ if(auto.checked){repeatAyet.checked=false;repeatSure.checked=false;} }
-repeatAyet.onchange=()=>{ if(repeatAyet.checked){auto.checked=false;repeatSure.checked=false;} }
-repeatSure.onchange=()=>{ if(repeatSure.checked){auto.checked=false;repeatAyet.checked=false;} }
-
-// SURE DEĞİŞİNCE DUR
-sure.onchange=()=>{
-  p.pause();
-  playing=false;
-  playBtn.innerHTML="▶ Başlat";
-};
-
-// SAYFA
-function showFav(){
-  mainPage.style.display="none";
-  favPage.style.display="block";
-  loadFav();
-}
-function showMain(){
-  mainPage.style.display="block";
-  favPage.style.display="none";
-}
-
-// YÜKLE (HER ZAMAN BAŞTAN)
-function load(){
-
-  p.pause();
-  playing=false;
-
-  sura=document.getElementById("sure").value;
-  current=0; // 🔥 HER ZAMAN BAŞTAN
-
-  Promise.all([
-    fetch(`https://api.alquran.cloud/v1/surah/${sura}/ar.alafasy`).then(r=>r.json()),
-    fetch(`https://api.alquran.cloud/v1/surah/${sura}/tr.diyanet`).then(r=>r.json())
-  ])
-  .then(([ar,tr])=>{
-
-    dataAR=ar.data.ayahs;
-    dataTR=tr.data.ayahs;
-
-    list.innerHTML="";
-
-    dataAR.forEach((a,x)=>{
-
-      let fav=localStorage.getItem("fav_"+sura+"_"+x)=="1";
-
-      let div=document.createElement("div");
-      div.className="ayet";
-      div.id="a"+x;
-
-      div.innerHTML=`
-        <div class="ar">${a.text}</div>
-        <div class="tr">${dataTR[x].text}</div>
-        <div class="kalp" id="kalp_${sura}_${x}" onclick="favToggle(event,${x})">
-          ${fav?"❤️":"🤍"}
-        </div>
-      `;
-
-      list.appendChild(div);
-    });
-
-  });
-}
-
-// FAVORİ
-function favToggle(e,x){
-  e.stopPropagation();
-
-  let key="fav_"+sura+"_"+x;
-
-  if(localStorage.getItem(key)){
-    localStorage.removeItem(key);
-  }else{
-    localStorage.setItem(key,"1");
-  }
-
-  updateKalp(sura,x);
-}
-
-function updateKalp(s,a){
-  let el=document.getElementById("kalp_"+s+"_"+a);
-  if(el){
-    el.innerHTML = localStorage.getItem("fav_"+s+"_"+a) ? "❤️" : "🤍";
-  }
-}
-
-// FAVORİ LİSTESİ (SURE ADI DOĞRU)
-async function loadFav(){
-
-  favList.innerHTML="";
-
-  for(let i=1;i<=114;i++){
-    for(let j=0;j<300;j++){
-
-      if(localStorage.getItem("fav_"+i+"_"+j)){
-
-        let [ar,tr]=await Promise.all([
-          fetch(`https://api.alquran.cloud/v1/surah/${i}/ar.alafasy`).then(r=>r.json()),
-          fetch(`https://api.alquran.cloud/v1/surah/${i}/tr.diyanet`).then(r=>r.json())
-        ]);
-
-        let div=document.createElement("div");
-        div.className="ayet";
-
-        div.innerHTML=`
-          <b>${turkceSureler[i]} - Ayet ${j+1}</b>
-          <div class="ar">${ar.data.ayahs[j].text}</div>
-          <div class="tr">${tr.data.ayahs[j].text}</div>
-          <button onclick="removeFav(${i},${j})">❌ Kaldır</button>
-        `;
-
-        favList.appendChild(div);
-      }
-    }
-  }
-}
-
-// SİL
-function removeFav(s,a){
-  localStorage.removeItem("fav_"+s+"_"+a);
-  updateKalp(s,a);
-  loadFav();
-}
-
-// PLAY / PAUSE
-function togglePlay(){
-  if(!playing){
-    playing=true;
-    playBtn.innerHTML="⏸ Duraklat";
-    playNext();
-  }else{
-    p.pause();
-    playing=false;
-    playBtn.innerHTML="▶ Başlat";
-  }
-}
-
-// OKUMA
-function playNext(){
-
-  if(current>=dataAR.length){
-
-    if(repeatSure.checked){
-      current=0;
-      playNext();
-      return;
+    if(!query){
+        alert("Şarkı adı gir.");
+        return;
     }
 
-    nextSurah();
-    return;
-  }
+    resultsDiv.innerHTML = "Aranıyor...";
 
-  p.src=dataAR[current].audio;
+    try {
+        const response = await fetch(apiURL + encodeURIComponent(query));
+        
+        if (!response.ok) {
+            throw new Error("Bağlantı hatası");
+        }
 
-  document.querySelectorAll(".ayet").forEach(e=>e.classList.remove("active"));
+        const data = await response.json();
+        resultsDiv.innerHTML = "";
 
-  let aktif=document.getElementById("a"+current);
-  if(aktif){
-    aktif.classList.add("active");
-    aktif.scrollIntoView({behavior:"smooth",block:"center"});
-  }
+        if(!data || data.length === 0){
+            resultsDiv.innerHTML = "Sonuç bulunamadı.";
+            return;
+        }
 
-  p.play().catch(()=>{});
+        data.forEach(track => {
+            // Şarkı kapağı yoksa varsayılan görsel koyuyoruz
+            const cover = track.artwork_url 
+                ? track.artwork_url.replace("-large", "-t500x500") 
+                : "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=150";
 
-  p.onended=()=>{
+            const div = document.createElement("div");
+            div.className = "song";
+            div.innerHTML = `
+                <img src="${cover}">
+                <div class="info">
+                    <div class="title">${track.title}</div>
+                    <div class="artist">${track.user.username}</div>
+                </div>
+                <button class="play">Çal</button>
+            `;
 
-    if(repeatAyet.checked){
-      playNext();
-      return;
+            div.querySelector(".play").onclick = async () => {
+                nowPlaying.textContent = "Yükleniyor...";
+                
+                // Doğrudan ses akış (stream) linkini bağlıyoruz
+                if(track.stream_url){
+                    player.src = track.stream_url;
+                    try {
+                        await player.play();
+                        nowPlaying.textContent = track.title;
+                    } catch(pErr) {
+                        alert("Bu şarkı şu an telif hakları veya format nedeniyle oynatılamadı.");
+                        nowPlaying.textContent = "Bir şarkı seç...";
+                    }
+                } else {
+                    alert("Şarkı formatı desteklenmiyor.");
+                    nowPlaying.textContent = "Bir şarkı seç...";
+                }
+            };
+
+            resultsDiv.appendChild(div);
+        });
+
+    } catch(err) {
+        console.error(err);
+        resultsDiv.innerHTML = "HATA: Sunucu bağlantısı sağlanamadı. Lütfen tekrar deneyin.";
     }
-
-    current++;
-    playNext();
-  };
 }
-
-// SONRAKİ
-function nextSurah(){
-
-  if(!auto.checked) return;
-
-  sura++;
-  if(sura>114) return;
-
-  sure.value=sura;
-
-  load();
-
-  setTimeout(()=>{
-    current=0;
-    playNext();
-  },500);
-}
-
 </script>
-
 </body>
 </html>
