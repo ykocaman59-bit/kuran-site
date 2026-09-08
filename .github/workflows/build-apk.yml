@@ -23,21 +23,16 @@ jobs:
         run: |
           npm install
 
-      - name: Add Android Platform
-        run: |
-          npx cap add android || true
-          npx cap sync android
-
-      - name: Generate App Icons
-        run: |
-          npx --yes @capacitor/assets generate --android
-          npx cap sync android
-
       - name: Setup Java JDK
         uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
           java-version: '17'
+
+      - name: Add and Sync Android Platform
+        run: |
+          npx cap add android
+          npx cap sync android
 
       - name: Build APK with Gradle
         run: |
@@ -47,7 +42,7 @@ jobs:
 
       - name: Rename APK
         run: |
-          mv android/app/build/outputs/apk/debug/app-debug.apk "android/app/build/outputs/apk/debug/KuranDinlePro.apk"
+          mv android/app/build/outputs/apk/debug/app-debug.apk android/app/build/outputs/apk/debug/KuranDinlePro.apk
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
