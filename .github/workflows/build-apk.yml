@@ -1,0 +1,58 @@
+name: Build Android APK
+
+on:
+  push:
+    branches:
+      - main
+      - master
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Dependencies
+        run: |
+          npm install
+
+      - name: Add Android Platform
+        run: |
+          npx cap add android || true
+          npx cap sync android
+
+      - name: Generate App Icons
+        run: |
+          npx --yes @capacitor/assets generate --android
+          npx cap sync android
+
+      - name: Setup Java JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Build APK with Gradle
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug
+
+      # Yeni Adım: APK Dosyasının Adını Değiştir
+      - name: Rename APK
+        run: |
+          mv android/app/build/outputs/apk/debug/app-debug.apk android/app/build/outputs/apk/debug/IstanbulSende.apk
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: istanbul-sende-apk
+          # Path alanını yeni dosya adıyla güncelledik
+          path: android/app/build/outputs/apk/debug/KURAN DİNLE PRO.apk
