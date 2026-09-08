@@ -1,0 +1,20 @@
+{
+  "name": "KURAN DİNLE PRO",
+  "version": "1.0.0",
+  "description": "KURAN DİNLE PRO Mobil Uygulaması",
+  "main": "index.js",
+  "scripts": {
+    "build": "cap sync",
+    "generate-assets": "capacitor-assets generate"
+  },
+  "dependencies": {
+    "@capacitor/android": "^6.0.0",
+    "@capacitor/app": "^6.0.0",
+    "@capacitor/cli": "^6.0.0",
+    "@capacitor/core": "^6.0.0",
+    "@capacitor/toast": "^6.0.0"
+  },
+  "devDependencies": {
+    "@capacitor/assets": "^3.0.5"
+  }
+}
