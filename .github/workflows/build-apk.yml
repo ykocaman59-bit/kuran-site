@@ -20,23 +20,25 @@ jobs:
           distribution: 'zulu'
           java-version: '17'
 
-      - name: Install Bubblewrap CLI
-        run: npm install -g @bubblewrap/cli
-
-      - name: Prepare Web Assets
+      - name: Locate and Prepare HTML
         run: |
           mkdir -p www
-          cp -r index.html www/ 2>/dev/null || true
+          INDEX_PATH=$(find . -maxdepth 3 -iname "index.html" | head -n 1)
+          if [ -n "$INDEX_PATH" ]; then
+            cp "$INDEX_PATH" www/index.html
+          else
+            echo "<html><body><h1>Index bulunamadi</h1></body></html>" > www/index.html
+          fi
 
-      - name: Setup Node.js & Capacitor
+      - name: Setup Capacitor CLI
         run: |
-          npm install --legacy-peer-deps
-          npm install @capacitor/core @capacitor/cli @capacitor/android --save
+          npm install -g @capacitor/cli @capacitor/core
           npx cap init "KURAN DINLE PRO" "com.kurandinlepro.app" --web-dir www
           npx cap add android
+          npx cap copy android
           npx cap sync android
 
-      - name: Build APK
+      - name: Build APK with Gradle
         run: |
           cd android
           chmod +x gradlew
