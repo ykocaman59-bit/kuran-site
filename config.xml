@@ -6,22 +6,13 @@
     
     <content src="index.html" />
     
-    <!-- Uygulama Logosu -->
-    <icon src="assets/icon.png" />
-
-    <!-- Güvenlik ve Ağ İzinleri -->
     <access origin="*" />
-    <allow-intent href="http://*/*" />
-    <allow-intent href="https://*/*" />
+    <allow-intent href="*" />
     <allow-navigation href="*" />
-    
-    <!-- Android Şifresiz Bağlantı İzni -->
+
     <edit-config file="app/src/main/AndroidManifest.xml" mode="merge" target="/manifest/application">
         <application android:usesCleartextTraffic="true" />
     </edit-config>
 
-    <!-- HTTPS Şemasına Geçiş -->
-    <preference name="Scheme" value="https" />
-    <preference name="Hostname" value="localhost" />
     <preference name="Orientation" value="portrait" />
 </widget>
