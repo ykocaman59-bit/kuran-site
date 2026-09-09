@@ -1,12 +1,21 @@
 <?xml version='1.0' encoding='utf-8'?>
 <widget id="com.kuran.pro" version="1.0.0" xmlns="http://www.w3.org/ns/widgets" xmlns:cdv="http://cordova.apache.org/ns/1.0">
     <name>Kuran Dinle PRO+</name>
-    <description>Kuran Dinle Uygulamasi</description>
+    <description>Kuran Dinle Uygulaması</description>
     <author email="dev@example.com">Developer</author>
+    
     <content src="index.html" />
+    
+    <!-- Uygulama Logosu -->
+    <icon src="assets/icon.png" />
+
+    <!-- Bağlantı ve İzin Ayarları -->
     <access origin="*" />
     <allow-intent href="http://*/*" />
     <allow-intent href="https://*/*" />
+    <allow-navigation href="*" />
+    
+    <preference name="Scheme" value="http" />
+    <preference name="Hostname" value="localhost" />
     <preference name="Orientation" value="portrait" />
 </widget>
-
