@@ -24,6 +24,12 @@ jobs:
           npm install --legacy-peer-deps
           npm install @capacitor/core @capacitor/cli @capacitor/android --save
 
+      - name: Ensure WWW Directory and Index File
+        run: |
+          mkdir -p www
+          if [ -f "index.html" ]; then cp index.html www/; fi
+          if [ -f "www/index.html" ]; then echo "index.html found in www"; else touch www/index.html; fi
+
       - name: Setup Java JDK
         uses: actions/setup-java@v4
         with:
