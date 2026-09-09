@@ -27,7 +27,7 @@ jobs:
 
       - name: Clean Previous Builds
         run: |
-          rm -rf android www node_modules package-lock.json capacitor.config.*
+          rm -rf android www node_modules package-lock.json capacitor.config.* package.json
 
       - name: Prepare Web Assets
         run: |
@@ -37,8 +37,16 @@ jobs:
             cp "$INDEX_PATH" www/index.html
           fi
 
-      - name: Generate Capacitor Config
+      - name: Create Package & Capacitor Config
         run: |
+          cat <<EOF > package.json
+          {
+            "name": "kurandinlepro",
+            "version": "1.0.0",
+            "private": true
+          }
+          EOF
+
           cat <<EOF > capacitor.config.json
           {
             "appId": "com.kurandinlepro.app",
@@ -50,9 +58,8 @@ jobs:
           }
           EOF
 
-      - name: Install Dependencies & Add Android
+      - name: Install Dependencies & Build Android
         run: |
-          npm init -y
           npm install @capacitor/core@6 @capacitor/cli@6 @capacitor/android@6 --save
           npx cap add android
           npx cap copy android
