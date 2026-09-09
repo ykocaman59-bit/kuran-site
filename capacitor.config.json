@@ -1,6 +1,6 @@
 {
   "appId": "com.kurandinlepro.app",
   "appName": "KURAN DİNLE PRO",
-  "webDir": "",
+  "webDir": ".",
   "plugins": {}
 }
