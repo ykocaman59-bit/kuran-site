@@ -32,12 +32,12 @@ jobs:
       - name: Install Cordova
         run: npm install -g cordova
 
-      - name: Prepare Web Files
+      - name: Prepare Web Directory
         run: |
           mkdir -p www
-          # Kök dizindeki tüm web dosyalarını www içine kopyalar
-          find . -maxdepth 1 -type f \( -name "*.html" -o -name "*.css" -o -name "*.js" -o -name "*.png" -o -name "*.jpg" -o -name "*.json" \) -exec cp {} www/ \;
-          # Varsa mevcut klasörleri de ekler
+          # Kök dizindeki html, css, js dosyalarını www'ye kopyala
+          cp -r *.html *.css *.js www/ 2>/dev/null || true
+          # Diğer klasörler varsa ekle
           if [ -d "assets" ]; then cp -r assets www/; fi
           if [ -d "js" ]; then cp -r js www/; fi
           if [ -d "css" ]; then cp -r css www/; fi
@@ -47,12 +47,12 @@ jobs:
           cordova platform add android
           cordova build android --debug
 
-      - name: Move APK to Root
+      - name: Export APK
         run: |
           mkdir -p output
           cp platforms/android/app/build/outputs/apk/debug/app-debug.apk output/KuranDinlePro.apk
 
-      - name: Upload APK
+      - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: KuranDinlePro-APK
