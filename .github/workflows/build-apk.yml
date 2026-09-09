@@ -34,11 +34,15 @@ jobs:
 
       - name: Prepare Web Directory
         run: |
+          # Temiz www klasörü oluştur
+          rm -rf www
           mkdir -p www
-          cp -r *.html *.css *.js www/ 2>/dev/null || true
-          if [ -d "assets" ]; then cp -r assets www/; fi
-          if [ -d "js" ]; then cp -r js www/; fi
-          if [ -d "css" ]; then cp -r css www/; fi
+          
+          # Depodaki tüm dosyaları ve alt klasörleri www içine kopyala
+          rsync -av --exclude='www' --exclude='platforms' --exclude='plugins' --exclude='.git' --exclude='.github' ./ www/
+          
+          # www içeriğini kontrol et
+          ls -la www/
 
       - name: Build Android Platform
         run: |
