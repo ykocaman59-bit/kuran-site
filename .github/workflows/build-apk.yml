@@ -14,35 +14,35 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-
-      - name: Install Dependencies
-        run: |
-          npm install --legacy-peer-deps
-          npm install @capacitor/core@6 @capacitor/cli@6 @capacitor/android@6 --save
-
       - name: Setup Java JDK
         uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
           java-version: '17'
 
-      - name: Reset & Add Android Platform
+      - name: Install Bubblewrap CLI
+        run: npm install -g @bubblewrap/cli
+
+      - name: Prepare Web Assets
         run: |
-          rm -rf android
+          mkdir -p www
+          cp -r index.html www/ 2>/dev/null || true
+
+      - name: Setup Node.js & Capacitor
+        run: |
+          npm install --legacy-peer-deps
+          npm install @capacitor/core @capacitor/cli @capacitor/android --save
+          npx cap init "KURAN DINLE PRO" "com.kurandinlepro.app" --web-dir www
           npx cap add android
           npx cap sync android
 
-      - name: Build APK with Gradle
+      - name: Build APK
         run: |
           cd android
           chmod +x gradlew
           ./gradlew assembleDebug
 
-      - name: Rename & Upload APK
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: kuran-dinle-pro-apk
