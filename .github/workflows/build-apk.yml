@@ -29,27 +29,19 @@ jobs:
       - name: Install Cordova
         run: npm install -g cordova
 
-      - name: Create Cordova App & Setup Files
+      - name: Create Cordova App & Copy Files
         run: |
           cordova create myApp com.kuran.pro "KuranDinlePro"
           
-          # HTML/CSS/JS dosyalarını aktar (kökten veya www klasöründen)
-          if [ -d "www" ]; then
-            cp -r www/* myApp/www/
-          else
-            cp index.html myApp/www/ 2>/dev/null || true
-          fi
+          # Ana dizindeki tüm web dosyalarını myApp/www içine kopyala
+          cp -r *.html *.css *.js myApp/www/ 2>/dev/null || true
+          
+          # Varsa www veya assets klasörlerini kopyala
+          if [ -d "www" ]; then cp -r www/* myApp/www/; fi
+          if [ -d "assets" ]; then cp -r assets myApp/www/; fi
 
-          # Logoyu aktar
-          if [ -d "assets" ]; then
-            mkdir -p myApp/www/assets
-            cp -r assets/* myApp/www/assets/
-          fi
-
-          # Config.xml güncelle
-          if [ -f config.xml ]; then
-            cp config.xml myApp/config.xml
-          fi
+          # config.xml dosyasını kopyala
+          if [ -f config.xml ]; then cp config.xml myApp/config.xml; fi
 
       - name: Build Android APK
         run: |
