@@ -32,21 +32,20 @@ jobs:
       - name: Install Cordova
         run: npm install -g cordova
 
-      - name: Prepare Web Directory
+      - name: Sync Web Files to Cordova Root
         run: |
-          # Temiz www klasörü oluştur
-          rm -rf www
           mkdir -p www
-          
-          # Depodaki tüm dosyaları ve alt klasörleri www içine kopyala
-          rsync -av --exclude='www' --exclude='platforms' --exclude='plugins' --exclude='.git' --exclude='.github' ./ www/
-          
-          # www içeriğini kontrol et
-          ls -la www/
+          # Kök dizindeki HTML, JS, CSS ve ilgili tüm dosyaları www içine kopyala
+          cp -R *.html *.js *.css *.json assets/ js/ css/ www/ 2>/dev/null || true
+          # Eğer ana dosya farklı bir klasördeyse oradan kopyalamayı dene
+          if [ ! -f "www/index.html" ]; then
+            find . -maxdepth 2 -name "index.html" -exec cp {} www/index.html \;
+          fi
 
       - name: Build Android Platform
         run: |
           cordova platform add android
+          cordova prepare android
           cordova build android --debug
 
       - name: Export APK
