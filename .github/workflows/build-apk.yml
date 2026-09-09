@@ -39,11 +39,19 @@ jobs:
 
           cat << 'EOF' > native-app/build.gradle
           buildscript {
-              repositories { google(); mavenCentral() }
-              dependencies { classpath 'com.android.tools.build:gradle:8.1.1' }
+              repositories {
+                  google()
+                  mavenCentral()
+              }
+              dependencies {
+                  classpath 'com.android.tools.build:gradle:8.2.2'
+              }
           }
           allprojects {
-              repositories { google(); mavenCentral() }
+              repositories {
+                  google()
+                  mavenCentral()
+              }
           }
           EOF
 
@@ -53,14 +61,17 @@ jobs:
           }
           android {
               namespace 'com.kurandinlepro.app'
-              compileSdk 33
+              compileSdk 34
               defaultConfig {
                   applicationId "com.kurandinlepro.app"
                   minSdk 21
-                  targetSdk 33
+                  targetSdk 34
                   versionCode 1
                   versionName "1.0"
               }
+          }
+          dependencies {
+              implementation 'androidx.appcompat:appcompat:1.6.1'
           }
           EOF
 
@@ -74,7 +85,8 @@ jobs:
                   android:usesCleartextTraffic="true">
                   <activity
                       android:name=".MainActivity"
-                      android:exported="true">
+                      android:exported="true"
+                      android:theme="@style/Theme.AppCompat.Light.NoActionBar">
                       <intent-filter>
                           <action android:name="android.intent.action.MAIN" />
                           <category android:name="android.intent.category.LAUNCHER" />
@@ -112,7 +124,7 @@ jobs:
 
           cat << 'EOF' > native-app/app/src/main/res/values/styles.xml
           <resources>
-              <style name="Theme.AppCompat.Light.NoActionBar" parent="Base.Theme.AppCompat.Light.NoActionBar"/>
+              <style name="Theme.AppCompat.Light.NoActionBar" parent="Theme.AppCompat.Light.NoActionBar"/>
           </resources>
           EOF
 
@@ -120,10 +132,16 @@ jobs:
           include ':app'
           EOF
 
-      - name: Build APK with Gradle
+      - name: Setup Gradle Wrapper
         run: |
           cd native-app
-          gradle assembleDebug
+          gradle wrapper --gradle-version 8.2 --distribution-type bin
+          chmod +x gradlew
+
+      - name: Build APK with Gradle Wrapper
+        run: |
+          cd native-app
+          ./gradlew assembleDebug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
