@@ -1,8 +1,0 @@
-{
-  "appId": "com.kurandinlepro.app",
-  "appName": "KURAN DINLE PRO",
-  "webDir": "www",
-  "server": {
-    "androidScheme": "https"
-  }
-}
