@@ -19,44 +19,29 @@ jobs:
         with:
           node-version: 20
 
-      - name: Clean Old Capacitor Config & Android Directory
-        run: |
-          rm -rf android capacitor.config.json capacitor.config.ts node_modules package-lock.json
-
-      - name: Prepare Web Assets
-        run: |
-          mkdir -p www
-          INDEX_PATH=$(find . -maxdepth 3 -iname "index.html" | head -n 1)
-          if [ -n "$INDEX_PATH" ]; then
-            cp "$INDEX_PATH" www/index.html
-          fi
-
-      - name: Install Capacitor & Dependencies
-        run: |
-          npm init -y
-          npm install @capacitor/core@6 @capacitor/cli@6 @capacitor/android@6 --save
-
-      - name: Create Capacitor Config
-        run: |
-          cat <<EOF > capacitor.config.json
-          {
-            "appId": "com.kurandinlepro.app",
-            "appName": "KURAN DINLE PRO",
-            "webDir": "www",
-            "server": {
-              "androidScheme": "https"
-            }
-          }
-          EOF
-
       - name: Setup Java JDK
         uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
           java-version: '17'
 
-      - name: Add and Sync Android Platform
+      - name: Clean & Prepare Project Structure
         run: |
+          rm -rf android node_modules package-lock.json
+          mkdir -p www
+          INDEX_PATH=$(find . -maxdepth 3 -iname "index.html" | head -n 1)
+          if [ -n "$INDEX_PATH" ]; then
+            cp "$INDEX_PATH" www/index.html
+          fi
+
+      - name: Install Local Capacitor & Android Platform
+        run: |
+          npm init -y
+          npm install @capacitor/core @capacitor/cli @capacitor/android --save
+
+      - name: Initialize & Sync Capacitor
+        run: |
+          npx cap init "KURAN DINLE PRO" "com.kurandinlepro.app" --web-dir www
           npx cap add android
           npx cap copy android
           npx cap sync android
