@@ -14,66 +14,120 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-
       - name: Setup Java JDK
         uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
           java-version: '17'
 
-      - name: Clean Previous Builds
+      - name: Locate HTML
         run: |
-          rm -rf android www node_modules package-lock.json capacitor.config.* package.json
-
-      - name: Prepare Web Assets
-        run: |
-          mkdir -p www
           INDEX_PATH=$(find . -maxdepth 3 -iname "index.html" | head -n 1)
-          if [ -n "$INDEX_PATH" ]; then
-            cp "$INDEX_PATH" www/index.html
+          if [ -z "$INDEX_PATH" ]; then
+            echo "index.html bulunamadi"
+            exit 1
           fi
+          echo "INDEX_FOUND=$INDEX_PATH" >> $GITHUB_ENV
 
-      - name: Create Package & Capacitor Config
+      - name: Setup Native Android Project
         run: |
-          cat <<EOF > package.json
-          {
-            "name": "kurandinlepro",
-            "version": "1.0.0",
-            "private": true
+          mkdir -p native-app/app/src/main/assets
+          mkdir -p native-app/app/src/main/java/com/kurandinlepro/app
+          mkdir -p native-app/app/src/main/res/values
+
+          cp $INDEX_FOUND native-app/app/src/main/assets/index.html
+
+          cat << 'EOF' > native-app/build.gradle
+          buildscript {
+              repositories { google(); mavenCentral() }
+              dependencies { classpath 'com.android.tools.build:gradle:8.1.1' }
+          }
+          allprojects {
+              repositories { google(); mavenCentral() }
           }
           EOF
 
-          cat <<EOF > capacitor.config.json
-          {
-            "appId": "com.kurandinlepro.app",
-            "appName": "KURAN DINLE PRO",
-            "webDir": "www",
-            "server": {
-              "androidScheme": "https"
-            }
+          cat << 'EOF' > native-app/app/build.gradle
+          plugins {
+              id 'com.android.application'
+          }
+          android {
+              namespace 'com.kurandinlepro.app'
+              compileSdk 33
+              defaultConfig {
+                  applicationId "com.kurandinlepro.app"
+                  minSdk 21
+                  targetSdk 33
+                  versionCode 1
+                  versionName "1.0"
+              }
           }
           EOF
 
-      - name: Install Dependencies & Build Android
-        run: |
-          npm install @capacitor/core@6 @capacitor/cli@6 @capacitor/android@6 --save
-          npx cap add android
-          npx cap copy android
-          npx cap sync android
+          cat << 'EOF' > native-app/app/src/main/AndroidManifest.xml
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+              <uses-permission android:name="android.permission.INTERNET" />
+              <application
+                  android:allowBackup="true"
+                  android:label="KURAN DINLE PRO"
+                  android:supportsRtl="true"
+                  android:usesCleartextTraffic="true">
+                  <activity
+                      android:name=".MainActivity"
+                      android:exported="true">
+                      <intent-filter>
+                          <action android:name="android.intent.action.MAIN" />
+                          <category android:name="android.intent.category.LAUNCHER" />
+                      </intent-filter>
+                  </activity>
+              </application>
+          </manifest>
+          EOF
+
+          cat << 'EOF' > native-app/app/src/main/java/com/kurandinlepro/app/MainActivity.java
+          package com.kurandinlepro.app;
+
+          import android.os.Bundle;
+          import android.webkit.WebSettings;
+          import android.webkit.WebView;
+          import android.webkit.WebViewClient;
+          import androidx.appcompat.app.AppCompatActivity;
+
+          public class MainActivity extends AppCompatActivity {
+              @Override
+              protected void onCreate(Bundle savedInstanceState) {
+                  super.onCreate(savedInstanceState);
+                  WebView webView = new WebView(this);
+                  WebSettings webSettings = webView.getSettings();
+                  webSettings.setJavaScriptEnabled(true);
+                  webSettings.setDomStorageEnabled(true);
+                  webSettings.setAllowFileAccess(true);
+                  webSettings.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
+                  webView.setWebViewClient(new WebViewClient());
+                  webView.loadUrl("file:///android_asset/index.html");
+                  setContentView(webView);
+              }
+          }
+          EOF
+
+          cat << 'EOF' > native-app/app/src/main/res/values/styles.xml
+          <resources>
+              <style name="Theme.AppCompat.Light.NoActionBar" parent="Base.Theme.AppCompat.Light.NoActionBar"/>
+          </resources>
+          EOF
+
+          cat << 'EOF' > native-app/settings.gradle
+          include ':app'
+          EOF
 
       - name: Build APK with Gradle
         run: |
-          cd android
-          chmod +x gradlew
-          ./gradlew assembleDebug
+          cd native-app
+          gradle assembleDebug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: kuran-dinle-pro-apk
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          path: native-app/app/build/outputs/apk/debug/app-debug.apk
           
