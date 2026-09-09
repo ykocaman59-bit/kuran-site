@@ -33,7 +33,7 @@ jobs:
         run: |
           cordova create myApp com.kuran.pro "KuranDinlePro"
           
-          # Ana dizindeki tüm web dosyalarını myApp/www içine kopyala
+          # HTML/CSS/JS dosyalarını kopyala
           cp -r *.html *.css *.js myApp/www/ 2>/dev/null || true
           
           # Varsa www veya assets klasörlerini kopyala
@@ -53,5 +53,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: KuranDinlePro-APK
-          path: myApp/platforms/android/app/build/outputs/apk/debug/*.apk
+          path: myApp/platforms/android/**/*.apk
           
