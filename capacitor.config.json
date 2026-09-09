@@ -1,9 +1,8 @@
 {
   "appId": "com.kurandinlepro.app",
-  "appName": "KURAN DİNLE PRO",
-  "webDir": ".",
+  "appName": "KURAN DINLE PRO",
+  "webDir": "www",
   "server": {
-    "androidScheme": "https",
-    "cleartext": true
+    "androidScheme": "https"
   }
 }
