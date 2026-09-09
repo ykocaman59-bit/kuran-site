@@ -21,8 +21,7 @@ jobs:
 
       - name: Install Dependencies
         run: |
-          npm install --legacy-peer-deps
-          npm install -g @ionic/cli
+          npm install
 
       - name: Setup Java JDK
         uses: actions/setup-java@v4
@@ -30,9 +29,9 @@ jobs:
           distribution: 'zulu'
           java-version: '17'
 
-      - name: Add Android Platform with Ionic
+      - name: Add and Sync Android Platform
         run: |
-          ionic cap add android || true
+          npx cap add android
           npx cap sync android
 
       - name: Build APK with Gradle
@@ -43,7 +42,7 @@ jobs:
 
       - name: Rename APK
         run: |
-          mv android/app/build/outputs/apk/debug/app-debug.apk "android/app/build/outputs/apk/debug/KuranDinlePro.apk"
+          mv android/app/build/outputs/apk/debug/app-debug.apk android/app/build/outputs/apk/debug/KuranDinlePro.apk
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
