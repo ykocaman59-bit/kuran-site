@@ -19,12 +19,7 @@ jobs:
         with:
           node-version: 20
 
-      - name: Create Web Directory
-        run: |
-          mkdir -p www
-          cp -r * www/ 2>/dev/null || true
-
-      - name: Install Capacitor Core
+      - name: Install Dependencies
         run: |
           npm install --legacy-peer-deps
           npm install @capacitor/core@6 @capacitor/cli@6 @capacitor/android@6 --save
@@ -35,11 +30,10 @@ jobs:
           distribution: 'zulu'
           java-version: '17'
 
-      - name: Initialize Android Project
+      - name: Reset & Add Android Platform
         run: |
           rm -rf android
           npx cap add android
-          npx cap copy android
           npx cap sync android
 
       - name: Build APK with Gradle
@@ -48,7 +42,7 @@ jobs:
           chmod +x gradlew
           ./gradlew assembleDebug
 
-      - name: Upload APK
+      - name: Rename & Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: kuran-dinle-pro-apk
