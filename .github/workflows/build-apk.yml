@@ -35,16 +35,15 @@ jobs:
       - name: Prepare Web Directory
         run: |
           mkdir -p www
-          # Kök dizindeki html, css, js dosyalarını www'ye kopyala
           cp -r *.html *.css *.js www/ 2>/dev/null || true
-          # Diğer klasörler varsa ekle
           if [ -d "assets" ]; then cp -r assets www/; fi
           if [ -d "js" ]; then cp -r js www/; fi
           if [ -d "css" ]; then cp -r css www/; fi
 
       - name: Build Android Platform
         run: |
-          cordova platform add android
+          cordova platform rm android 2>/dev/null || true
+          cordova platform add android@12.0.0
           cordova build android --debug
 
       - name: Export APK
