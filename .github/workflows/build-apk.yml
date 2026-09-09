@@ -26,6 +26,9 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
       - name: Install Cordova
         run: npm install -g cordova
 
@@ -33,25 +36,23 @@ jobs:
         run: |
           cordova create myApp com.kuran.pro "KuranDinlePro"
           
-          # HTML/CSS/JS dosyalarını kopyala
+          # Dosyaları myApp/www içine aktar
           cp -r *.html *.css *.js myApp/www/ 2>/dev/null || true
-          
-          # Varsa www veya assets klasörlerini kopyala
           if [ -d "www" ]; then cp -r www/* myApp/www/; fi
           if [ -d "assets" ]; then cp -r assets myApp/www/; fi
 
-          # config.xml dosyasını kopyala
+          # config.xml dosyasını aktar
           if [ -f config.xml ]; then cp config.xml myApp/config.xml; fi
 
-      - name: Build Android APK
+      - name: Build Android Platform
         run: |
           cd myApp
           cordova platform add android
           cordova build android --verbose
 
-      - name: Upload APK
+      - name: Find and Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: KuranDinlePro-APK
-          path: myApp/platforms/android/**/*.apk
+          path: myApp/platforms/android/app/build/outputs/apk/debug/app-debug.apk
           
