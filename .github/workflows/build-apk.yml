@@ -35,8 +35,12 @@ jobs:
       - name: Prepare Web Files
         run: |
           mkdir -p www
-          cp -r *.html *.css *.js www/ 2>/dev/null || true
+          # Kök dizindeki tüm web dosyalarını www içine kopyalar
+          find . -maxdepth 1 -type f \( -name "*.html" -o -name "*.css" -o -name "*.js" -o -name "*.png" -o -name "*.jpg" -o -name "*.json" \) -exec cp {} www/ \;
+          # Varsa mevcut klasörleri de ekler
           if [ -d "assets" ]; then cp -r assets www/; fi
+          if [ -d "js" ]; then cp -r js www/; fi
+          if [ -d "css" ]; then cp -r css www/; fi
 
       - name: Build Android Platform
         run: |
