@@ -22,23 +22,21 @@ jobs:
       - name: Install Core Dependencies
         run: |
           npm install --legacy-peer-deps
-          npm install @capacitor/core @capacitor/cli @capacitor/android @capacitor/assets --save
-
-      - name: Sync Web Directory
-        run: |
-          mkdir -p www
-          cp -r index.html css js assets assets/icon.png www/ 2>/dev/null || true
-          cp -r * www/ 2>/dev/null || true
-
-      - name: Generate App Icons
-        run: |
-          npx @capacitor/assets generate --android || true
+          npm install @capacitor/core @capacitor/cli @capacitor/android --save
 
       - name: Setup Java JDK
         uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
           java-version: '17'
+
+      - name: Prepare Web Assets
+        run: |
+          mkdir -p build_tmp
+          cp -r www/* build_tmp/ 2>/dev/null || true
+          if [ -f "index.html" ]; then cp index.html build_tmp/; fi
+          rm -rf www
+          mv build_tmp www
 
       - name: Add and Sync Android Platform
         run: |
