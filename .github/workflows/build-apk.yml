@@ -22,13 +22,17 @@ jobs:
       - name: Install Core Dependencies
         run: |
           npm install --legacy-peer-deps
-          npm install @capacitor/core @capacitor/cli @capacitor/android --save
+          npm install @capacitor/core @capacitor/cli @capacitor/android @capacitor/assets --save
 
-      - name: Ensure WWW Directory and Index File
+      - name: Sync Web Directory
         run: |
           mkdir -p www
-          if [ -f "index.html" ]; then cp index.html www/; fi
-          if [ -f "www/index.html" ]; then echo "index.html found in www"; else touch www/index.html; fi
+          cp -r index.html css js assets assets/icon.png www/ 2>/dev/null || true
+          cp -r * www/ 2>/dev/null || true
+
+      - name: Generate App Icons
+        run: |
+          npx @capacitor/assets generate --android || true
 
       - name: Setup Java JDK
         uses: actions/setup-java@v4
