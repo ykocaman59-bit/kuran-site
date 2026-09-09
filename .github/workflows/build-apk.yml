@@ -29,9 +29,14 @@ jobs:
           distribution: 'zulu'
           java-version: '17'
 
+      - name: Create Dummy Assets if Missing
+        run: |
+          mkdir -p www
+          [ -f index.html ] && mv index.html www/ || true
+
       - name: Add and Sync Android Platform
         run: |
-          npx cap add android
+          npx cap add android || true
           npx cap sync android
 
       - name: Build APK with Gradle
