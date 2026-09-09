@@ -9,13 +9,19 @@
     <!-- Uygulama Logosu -->
     <icon src="assets/icon.png" />
 
-    <!-- Bağlantı ve İzin Ayarları -->
+    <!-- Güvenlik ve Ağ İzinleri -->
     <access origin="*" />
     <allow-intent href="http://*/*" />
     <allow-intent href="https://*/*" />
     <allow-navigation href="*" />
     
-    <preference name="Scheme" value="http" />
+    <!-- Android Şifresiz Bağlantı İzni -->
+    <edit-config file="app/src/main/AndroidManifest.xml" mode="merge" target="/manifest/application">
+        <application android:usesCleartextTraffic="true" />
+    </edit-config>
+
+    <!-- HTTPS Şemasına Geçiş -->
+    <preference name="Scheme" value="https" />
     <preference name="Hostname" value="localhost" />
     <preference name="Orientation" value="portrait" />
 </widget>
