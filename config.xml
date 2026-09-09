@@ -6,13 +6,21 @@
     
     <content src="index.html" />
     
+    <!-- Uygulama Logosu -->
+    <icon src="assets/icon.png" />
+
     <access origin="*" />
     <allow-intent href="*" />
     <allow-navigation href="*" />
 
+    <!-- Android İçin Yerel Dosya Açılış Ayarları -->
+    <preference name="AndroidInsecureFileModeEnabled" value="true" />
+    <preference name="AllowUniversalAccessFromFileURLs" value="true" />
+    <preference name="AllowFileAccessFromFileURLs" value="true" />
+    <preference name="MixedContentMode" value="0" />
+    <preference name="Orientation" value="portrait" />
+
     <edit-config file="app/src/main/AndroidManifest.xml" mode="merge" target="/manifest/application">
         <application android:usesCleartextTraffic="true" />
     </edit-config>
-
-    <preference name="Orientation" value="portrait" />
 </widget>
