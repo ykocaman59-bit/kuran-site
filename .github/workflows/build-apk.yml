@@ -14,26 +14,49 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Clean Old Capacitor Config & Android Directory
+        run: |
+          rm -rf android capacitor.config.json capacitor.config.ts node_modules package-lock.json
+
+      - name: Prepare Web Assets
+        run: |
+          mkdir -p www
+          INDEX_PATH=$(find . -maxdepth 3 -iname "index.html" | head -n 1)
+          if [ -n "$INDEX_PATH" ]; then
+            cp "$INDEX_PATH" www/index.html
+          fi
+
+      - name: Install Capacitor & Dependencies
+        run: |
+          npm init -y
+          npm install @capacitor/core@6 @capacitor/cli@6 @capacitor/android@6 --save
+
+      - name: Create Capacitor Config
+        run: |
+          cat <<EOF > capacitor.config.json
+          {
+            "appId": "com.kurandinlepro.app",
+            "appName": "KURAN DINLE PRO",
+            "webDir": "www",
+            "server": {
+              "androidScheme": "https"
+            }
+          }
+          EOF
+
       - name: Setup Java JDK
         uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
           java-version: '17'
 
-      - name: Locate and Prepare HTML
+      - name: Add and Sync Android Platform
         run: |
-          mkdir -p www
-          INDEX_PATH=$(find . -maxdepth 3 -iname "index.html" | head -n 1)
-          if [ -n "$INDEX_PATH" ]; then
-            cp "$INDEX_PATH" www/index.html
-          else
-            echo "<html><body><h1>Index bulunamadi</h1></body></html>" > www/index.html
-          fi
-
-      - name: Setup Capacitor CLI
-        run: |
-          npm install -g @capacitor/cli @capacitor/core
-          npx cap init "KURAN DINLE PRO" "com.kurandinlepro.app" --web-dir www
           npx cap add android
           npx cap copy android
           npx cap sync android
