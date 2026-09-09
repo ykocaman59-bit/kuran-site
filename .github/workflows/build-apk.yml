@@ -25,23 +25,35 @@ jobs:
           distribution: 'zulu'
           java-version: '17'
 
-      - name: Clean & Prepare Project Structure
+      - name: Clean Previous Builds
         run: |
-          rm -rf android node_modules package-lock.json
+          rm -rf android www node_modules package-lock.json capacitor.config.*
+
+      - name: Prepare Web Assets
+        run: |
           mkdir -p www
           INDEX_PATH=$(find . -maxdepth 3 -iname "index.html" | head -n 1)
           if [ -n "$INDEX_PATH" ]; then
             cp "$INDEX_PATH" www/index.html
           fi
 
-      - name: Install Local Capacitor & Android Platform
+      - name: Generate Capacitor Config
+        run: |
+          cat <<EOF > capacitor.config.json
+          {
+            "appId": "com.kurandinlepro.app",
+            "appName": "KURAN DINLE PRO",
+            "webDir": "www",
+            "server": {
+              "androidScheme": "https"
+            }
+          }
+          EOF
+
+      - name: Install Dependencies & Add Android
         run: |
           npm init -y
-          npm install @capacitor/core @capacitor/cli @capacitor/android --save
-
-      - name: Initialize & Sync Capacitor
-        run: |
-          npx cap init "KURAN DINLE PRO" "com.kurandinlepro.app" --web-dir www
+          npm install @capacitor/core@6 @capacitor/cli@6 @capacitor/android@6 --save
           npx cap add android
           npx cap copy android
           npx cap sync android
