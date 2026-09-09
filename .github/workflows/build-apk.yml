@@ -18,7 +18,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 18
 
       - name: Setup Java JDK
         uses: actions/setup-java@v4
@@ -36,23 +36,28 @@ jobs:
         run: |
           cordova create myApp com.kuran.pro "KuranDinlePro"
           
-          # Dosyaları myApp/www içine aktar
+          # HTML/CSS/JS/Assets aktarma
           cp -r *.html *.css *.js myApp/www/ 2>/dev/null || true
           if [ -d "www" ]; then cp -r www/* myApp/www/; fi
           if [ -d "assets" ]; then cp -r assets myApp/www/; fi
 
-          # config.xml dosyasını aktar
+          # config.xml aktarma
           if [ -f config.xml ]; then cp config.xml myApp/config.xml; fi
 
       - name: Build Android Platform
         run: |
           cd myApp
           cordova platform add android
-          cordova build android --verbose
+          cordova build android --debug
 
-      - name: Find and Upload APK
+      - name: Move APK to Root
+        run: |
+          mkdir -p output
+          find myApp/platforms/android -name "*.apk" -exec cp {} output/ \;
+
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: KuranDinlePro-APK
-          path: myApp/platforms/android/app/build/outputs/apk/debug/app-debug.apk
+          path: output/*.apk
           
