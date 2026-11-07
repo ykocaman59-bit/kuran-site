@@ -64,6 +64,11 @@ jobs:
           ls -la www
           test -f www/index.html
 
+      - name: Fix config.xml (remove invalid color and adaptive icon settings)
+        run: |
+          sed -i '/BackgroundColor/d;/foreground=/d' config.xml
+          cat config.xml
+
       - name: Build Android APK
         run: |
           cordova platform add android@13.0.0
