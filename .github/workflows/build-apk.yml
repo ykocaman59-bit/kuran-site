@@ -40,6 +40,7 @@ jobs:
           src = Image.open("assets/icon.png").convert("RGB")
           w, h = src.size
           bg = src.getpixel((min(60, w - 1), min(60, h - 1)))
+          orig = src
           if w != h:
               # Yatay logo: kulaklikli Kuran amblemini kare olarak kirp
               s = int(h * 600 / 768)
@@ -53,6 +54,30 @@ jobs:
               Image.new("RGB", (px, px), bg).save(f"res/icon/android/{d}-background.png")
           if not os.path.exists("www/logo.png"):
               src.resize((384, 384), Image.LANCZOS).save("www/logo.png")
+          # Acilis ekrani (splash) ikonu: duz lacivert zemin + yumusak kenarli amblem
+          from PIL import ImageFilter, ImageDraw
+          C = 1152
+          ow, oh = orig.size
+          if ow != oh:
+              t = int(oh * 450 / 768)
+              tcx, tcy = int(ow * 675 / 1408), int(oh * 338 / 768)
+              emb_src = orig.crop((tcx - t // 2, tcy - t // 2, tcx + t // 2, tcy + t // 2))
+          else:
+              emb_src = orig
+          E = 600
+          emb = emb_src.resize((E, E), Image.LANCZOS)
+          # zemin rengi: amblem kirpmasinin kenarlarinin ortalamasi (kutu gorunmesin)
+          pts = [(6, 6), (E - 7, 6), (6, E - 7), (E - 7, E - 7), (E // 2, 6), (E // 2, E - 7), (6, E // 2), (E - 7, E // 2)]
+          px = [emb.getpixel(q) for q in pts]
+          sbg = tuple(sum(c[i] for c in px) // len(px) for i in range(3))
+          canvas = Image.new("RGB", (C, C), sbg)
+          mask = Image.new("L", (E, E), 0)
+          ImageDraw.Draw(mask).rectangle((34, 34, E - 34, E - 34), fill=255)
+          mask = mask.filter(ImageFilter.GaussianBlur(16))
+          canvas.paste(emb, ((C - E) // 2, (C - E) // 2), mask)
+          os.makedirs("res/screen/android", exist_ok=True)
+          canvas.save("res/screen/android/splash_icon.png")
+          open("res/screen/android/bg.txt", "w").write("#%02X%02X%02X" % sbg)
           print("icons ok", os.listdir("res/icon/android"))
           PY
 
@@ -64,10 +89,27 @@ jobs:
           ls -la www
           test -f www/index.html
 
-      - name: Fix config.xml (remove invalid color and adaptive icon settings)
+      - name: Fix config.xml (splash screen, 2 seconds, own logo)
         run: |
-          sed -i '/BackgroundColor/d;/foreground=/d' config.xml
-          cat config.xml
+          python3 - <<'PY'
+          import re
+          bg = open("res/screen/android/bg.txt").read().strip()
+          x = open("config.xml", encoding="utf-8").read()
+          # gecersiz/eski satirlari temizle
+          x = "\n".join(l for l in x.split("\n") if not re.search(r"BackgroundColor|foreground=|SplashScreen", l))
+          prefs = (
+              '    <preference name="AndroidWindowSplashScreenAnimatedIcon" value="res/screen/android/splash_icon.png" />\n'
+              '    <preference name="AndroidWindowSplashScreenBackground" value="%s" />\n'
+              '    <preference name="AutoHideSplashScreen" value="true" />\n'
+              '    <preference name="SplashScreenDelay" value="2000" />\n'
+          ) % bg
+          x = x.replace("</widget>", prefs + "</widget>")
+          open("config.xml", "w", encoding="utf-8").write(x)
+          import xml.dom.minidom as m
+          m.parse("config.xml")
+          print(x)
+          print("config.xml valid")
+          PY
 
       - name: Build Android APK
         run: |
