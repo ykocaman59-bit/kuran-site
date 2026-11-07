@@ -3,18 +3,35 @@
     <name>Kuran Dinle PRO+</name>
     <description>Kuran Dinle Uygulaması</description>
     <author email="dev@example.com">Developer</author>
-    
+
     <content src="index.html" />
-    
-    <icon src="assets/icon.png" />
 
     <access origin="*" />
-    <allow-intent href="*" />
+    <allow-intent href="http://*/*" />
+    <allow-intent href="https://*/*" />
     <allow-navigation href="*" />
 
     <preference name="Orientation" value="portrait" />
+    <preference name="BackgroundColor" value="0xFF141C2F" />
 
-    <edit-config file="app/src/main/AndroidManifest.xml" mode="merge" target="/manifest/application">
-        <application android:usesCleartextTraffic="true" />
-    </edit-config>
+    <platform name="android">
+        <edit-config file="app/src/main/AndroidManifest.xml" mode="merge" target="/manifest/application">
+            <application android:usesCleartextTraffic="true" />
+        </edit-config>
+
+        <!-- Eski Android sürümleri için ikonlar -->
+        <icon density="ldpi" src="res/icon/android/ldpi.png" />
+        <icon density="mdpi" src="res/icon/android/mdpi.png" />
+        <icon density="hdpi" src="res/icon/android/hdpi.png" />
+        <icon density="xhdpi" src="res/icon/android/xhdpi.png" />
+        <icon density="xxhdpi" src="res/icon/android/xxhdpi.png" />
+        <icon density="xxxhdpi" src="res/icon/android/xxxhdpi.png" />
+
+        <!-- Adaptif ikon (Android 8+) -->
+        <icon density="mdpi" background="res/icon/android/mdpi-background.png" foreground="res/icon/android/mdpi-foreground.png" />
+        <icon density="hdpi" background="res/icon/android/hdpi-background.png" foreground="res/icon/android/hdpi-foreground.png" />
+        <icon density="xhdpi" background="res/icon/android/xhdpi-background.png" foreground="res/icon/android/xhdpi-foreground.png" />
+        <icon density="xxhdpi" background="res/icon/android/xxhdpi-background.png" foreground="res/icon/android/xxhdpi-foreground.png" />
+        <icon density="xxxhdpi" background="res/icon/android/xxxhdpi-background.png" foreground="res/icon/android/xxxhdpi-foreground.png" />
+    </platform>
 </widget>
