@@ -2,9 +2,7 @@ name: Build Android APK
 
 on:
   push:
-    branches:
-      - main
-      - master
+    branches: [main, master]
   workflow_dispatch:
 
 jobs:
@@ -23,29 +21,23 @@ jobs:
       - name: Setup Java JDK
         uses: actions/setup-java@v4
         with:
-          distribution: 'temurin'
+          distribution: temurin
           java-version: '17'
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
       - name: Install Cordova
-        run: npm install -g cordova
+        run: npm install -g cordova@12
 
-      - name: Sync Web Files to Cordova Root
+      - name: Check www/index.html
         run: |
-          mkdir -p www
-          # Kök dizindeki HTML, JS, CSS ve ilgili tüm dosyaları www içine kopyala
-          cp -R *.html *.js *.css *.json assets/ js/ css/ www/ 2>/dev/null || true
-          # Eğer ana dosya farklı bir klasördeyse oradan kopyalamayı dene
-          if [ ! -f "www/index.html" ]; then
-            find . -maxdepth 2 -name "index.html" -exec cp {} www/index.html \;
-          fi
+          ls -la www
+          test -f www/index.html
 
-      - name: Build Android Platform
+      - name: Build Android APK
         run: |
-          cordova platform add android
-          cordova prepare android
+          cordova platform add android@13.0.0
           cordova build android --debug
 
       - name: Export APK
@@ -58,4 +50,3 @@ jobs:
         with:
           name: KuranDinlePro-APK
           path: output/KuranDinlePro.apk
-          
