@@ -31,6 +31,31 @@ jobs:
           yes | $SDKM --licenses > /dev/null || true
           $SDKM "platforms;android-34" "build-tools;34.0.0" "platform-tools"
 
+      - name: Generate app icons from assets/icon.png
+        run: |
+          pip install pillow
+          python3 - <<'PY'
+          from PIL import Image
+          import os
+          src = Image.open("assets/icon.png").convert("RGB")
+          w, h = src.size
+          bg = src.getpixel((min(60, w - 1), min(60, h - 1)))
+          if w != h:
+              # Yatay logo: kulaklikli Kuran amblemini kare olarak kirp
+              s = int(h * 600 / 768)
+              cx, cy = int(w * 675 / 1408), int(h * 340 / 768)
+              src = src.crop((cx - s // 2, cy - s // 2, cx + s // 2, cy + s // 2))
+          os.makedirs("res/icon/android", exist_ok=True)
+          for d, px in {"ldpi": 36, "mdpi": 48, "hdpi": 72, "xhdpi": 96, "xxhdpi": 144, "xxxhdpi": 192}.items():
+              src.resize((px, px), Image.LANCZOS).save(f"res/icon/android/{d}.png")
+          for d, px in {"ldpi": 81, "mdpi": 108, "hdpi": 162, "xhdpi": 216, "xxhdpi": 324, "xxxhdpi": 432}.items():
+              src.resize((px, px), Image.LANCZOS).save(f"res/icon/android/{d}-foreground.png")
+              Image.new("RGB", (px, px), bg).save(f"res/icon/android/{d}-background.png")
+          if not os.path.exists("www/logo.png"):
+              src.resize((384, 384), Image.LANCZOS).save("www/logo.png")
+          print("icons ok", os.listdir("res/icon/android"))
+          PY
+
       - name: Install Cordova
         run: npm install -g cordova@12
 
